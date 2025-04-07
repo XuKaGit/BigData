@@ -43,3 +43,9 @@
 | 数据插入     | 能增加 `INSERT`，不能 `UPDATE`，`DELETE` | 能 `INSERT`，`UPDATE`，`DELETE` |
 | 数据存储     | HDFS                       | 拥有自己的存储空间       |
 | 计算引擎     | MapReduce/Spark/Tez       | 自己的引擎 InnoDB        |
+
+
+
+
+
+
