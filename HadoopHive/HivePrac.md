@@ -289,13 +289,11 @@ set hive.exec.dynamic.partition.mode=nonstrict;
 
 <p>
 
-  - Hive分桶主要是为了提高分布式查询的效率。它能够通过将数据划分为若干数据块来将大量数据分发到多个节点，使得数据均衡分布到多个机器上处理。这样分发到不同节点的数据可以在本地进行处理，避免了数据的传输和网络带宽的浪费，同时提高了查询效率。
-
-<p>
-
 - 分桶的主要作用是:
 
   - 提高join查询( 数据聚合)效率: 获得更高的查询处理效率。桶为表加上了额外的结构，Hive 在处理有些查询时能利用这个结构。具体而言，连接两个在（包含连接列的）相同列上划分了桶的表，可以使用 Map 端连接 （Map-side join）高效的实现。比如JOIN操作。对于JOIN操作两个表有一个相同的列，如果对这两个表都进行了桶操作。那么将保存相同列值的桶进行JOIN操作就可以，可以大大较少JOIN的数据量。
+
+  - 同理 过滤/分组 的性能也会提升
 
   <p>
 
@@ -327,13 +325,110 @@ insert overwrite table myhive.psn_bucket select * from myhive.temp cluster by(ag
 ```
 
 
+#### 2.2.6 修改表操作
+
+- **重命名数据表**: `ALTER TABLE table_name RENAME TO new_table_name;`
+<p>
+
+- **添加列**: `ALTER TABLE table_name ADD COLUMNS (col_name data_type [COMMENT col_comment], ...);`
+<p>
 
 
+- **删除列**: `ALTER TABLE table_name REPLACE COLUMNS (col_name data_type [COMMENT col_comment], ...);`
+<p>
+
+- **修改列名**: `ALTER TABLE table_name CHANGE old_col_name new_col_name data_type [COMMENT col_comment];`
+   - 注意: 只能修改列名, 不能修改列的类型, 如果需要修改列的类型, 需要使用`REPLACE COLUMNS`语句.
 
 
+<p>
+
+- **添加分区**: `ALTER TABLE table_name ADD PARTITION (part_col_name=part_col_value);`
+- **删除分区**: `ALTER TABLE table_name DROP PARTITION (part_col_name=part_col_value);`
+
+<p>
+
+- **修改分区值**: `ALTER TABLE table_name PARTITION (part_col_name=part_col_value) RENAME TO PARTITION (new_part_col_name=new_part_col_value);`
 
 
+<p>
 
+- **修改表属性**: `ALTER TABLE table_name SET TBLPROPERTIES (property_name=property_value, ...);`
+  - 注意hdfs上的实体文件夹名字不会改变, 只是表的元数据发生了变化
+
+
+- **清空表数据**: `TRUNCATE TABLE table_name;`
+   - 不能清空外部表的数据, 只能清空内部表的数据.
+
+
+#### 2.2.7 复杂数据类型
+- Hive支持复杂数据类型, 包括: `array`, `map`, `struct`
+
+
+- **array**: 数组类型, 例如: `array<int>`表示一个整型数组, `array<string>`表示一个字符串数组.
+   - 建表语句 :
+   
+   ```sql
+   creat table myhive.test_array(name string, work_locations array<string>)
+   row format delimited fields terminated by '\t'
+   COLLECTION ITEMS TERMINATED BY ',';   #这里指定数组内元素的分隔符
+   ```
+
+  ```sql
+
+  # 找到每个人工作的第一个城市
+  select name, work_locations[0] from myhive.test_array; 
+  # 统计每个工作过城市的个数
+  select name, size(work_locations) from myhive.test_array;
+  # 找找谁在天津工作过
+  select * from myhive.test_array where ARRAY_CONTAINS(work_location, '天津') 
+  ```
+
+- **map**: Kay-Value格式的数据
+   - 字段与字段之间分隔符为',' ; 需要map字段之间的分隔符: '#' ; kay 与 value之间 ':'
+
+  ```sql
+  
+  create table myhive.test_map(
+  name string,
+  member map<string, string>
+  )
+  row format delimited 
+  fields terminated by ',' 
+  collection items terminated by '#' 
+  map keys terminated by ':'; #map 中的key与value的分隔符
+
+
+  #查看map values
+  select name, members['father'], members['mother'] from myhive.test_map;
+  
+  #取出map的全部keys, 返回类型是array
+  select map_keys(members)  from myhive.test_map;
+
+  # 看谁有sister这个key
+  select * from myhive.test_map where ARRAY_CONTAINS(map_keys(members),'sister') ;
+  # 看谁有王琳这个value
+  select * from myhive.test_map where ARRAY_CONTAINS(map_values(members),'王琳') ;
+  ```
+
+
+- **struct**:
+  - 结构体类型, 例如: `struct<field1:data_type, field2:data_type>`表示一个包含多个字段的结构体.
+  - 字段之间#分割, struct之间冒号分割
+  - 建表语句 :
+  
+  ```sql
+  create table myhive.test_struct(name string, address struct<city:string, state:string>)
+  row format delimited fields terminated by '#';
+  collection items terminated by ':'
+
+  ```
+  
+  ```sql
+  # 查询结构体中的字段
+  select name, address.city, address.state from myhive.test_struct;
+
+  ```
 
 
 ### 2.3. 数据加载与导出
@@ -384,9 +479,94 @@ bin/hive -f export.sql > /home/hadoop/export/export4.txt
 
 ### 2.4. 数据查询
 
+
+- **group**
+
+  - 用于将数据分组, 例如: `group by field_name`
+  - `group by`后面可以跟多个字段, 例如: `group by field1, field2`
+  - `group by`后面可以跟`order by`, 例如: `group by field1, field2 order by field3` 
+
+- **having**
+
+  - 用于对分组后的数据进行过滤, 例如: `having count(*) > 10`
+  - `having`后面可以跟多个条件, 例如: `having count(*) > 10 and sum(field1) < 100`
+  - `having`后面可以跟`order by`, 例如: `having count(*) > 10 order by field1`
+  - `having`后面可以跟`limit`, 例如: `having count(*) > 10 limit 10`
+  - `having`后面可以跟`order by`, 例如: `having count(*) > 10 order by field1 limit 10`
+
+- **having和where的区别**
+
+  - `where`用于对原始数据进行过滤, 而`having`用于对分组后的数据进行过滤
+  - `where`在`group by`之前执行, 而`having`在`group by`之后执行
+  - `where`不能使用聚合函数, 而`having`可以使用聚合函数
+
+
+- **order**
+
+  - 用于对数据进行排序, 例如: `order by field_name`
+  - `order by`后面可以跟多个字段, 例如: `order by field1, field2`
+  - `order by`后面可以跟`limit`, 例如: `order by field1, field2 limit 10`
+
+- **limit**
+
+  - 用于限制查询结果的条数, 例如: `limit 10`
+  - `limit`后面可以跟`offset`, 例如: `limit 10 offset 5`
+  - `limit`后面可以跟`order by`, 例如: `limit 10 order by field1, field2` 
+
+- **cluster**
+
+  - 用于对数据进行分桶, 例如: `cluster by field_name`
+  - `cluster by`后面可以跟多个字段, 例如: `cluster by field1, field2`
+  - `cluster by`后面可以跟`order by`, 例如: `cluster by field1, field2 order by field3` 
+  - `cluster by`后面可以跟`limit`, 例如: `cluster by field1, field2 limit 10`
+  - `cluster by`后面可以跟`order by`, 例如: `cluster by field1, field2 order by field3 limit 10`
+
+- **distribute**
+
+  - 用于对数据进行分布式处理, 例如: `distribute by field_name`
+  - `distribute by`后面可以跟多个字段, 例如: `distribute by field1, field2`
+  - `distribute by`后面可以跟`order by`, 例如: `distribute by field1, field2 order by field3` 
+  - `distribute by`后面可以跟`limit`, 例如: `distribute by field1, field2 limit 10`
+  - `distribute by`后面可以跟`order by`, 例如: `distribute by field1, field2 order by field3 limit 10`
+  - `distribute by`后面可以跟`cluster by`, 例如: `distribute by field1, field2 cluster by field3`
+  - `distribute by`后面可以跟`having`, 例如: `distribute by field1, field2 having count(*) > 10`
+  - `distribute by`后面可以跟`group by`, 例如: `distribute by field1, field2 group by field3`
+  - `distribute by`后面可以跟`order by`, 例如: `distribute by field1, field2 order by field3` 
+
+
 ### 2.5. 函数
 
 
+
+
+- **聚合函数**: 用于对一组值进行计算并返回单个值, 例如: `count()`, `sum()`, `avg()`, `max()`, `min()`
+- **窗口函数**: 用于在查询结果中进行复杂的分析, 例如: `row_number()`, `rank()`, `dense_rank()`
+- **字符串函数**: 用于对字符串进行操作, 例如: `concat()`, `length()`, `lower()`, `upper()`, `substring()`
+
+```sql
+# 语法 
+
+
+
+select [distinct] select_expr, ... from table_reference [where ...] [group by ...] [having ...] [order by ...] [limit ...];
+# example     
+select count(*) from myhive.test_load where name='zhangsan' group by name order by count(*) desc limit 10;
+select name, count(*) from myhive.test_load where name='zhangsan' group by name order by count(*) desc limit 10;
+select name, count(*) from myhive.test_load where name='zhangsan' group by name order by count(*) desc limit 10;
+select name, count(*) from myhive.test_load where name='zhangsan' group by name order by count(*) desc limit 10;
+select name, count(*) from myhive.test_load where name='zhangsan' group by name order by count(*) desc limit 10;
+select name, count(*) from myhive.test_load where name='zhangsan' group by name order by count(*) desc limit 10;
+select name, count(*) from myhive.test_load where name='zhangsan' group by name order by count(*) desc limit 10;
+select name, count(*) from myhive.test_load where name='zhangsan' group by name order by count(*) desc limit 10;
+```
+
+- **日期函数**: 用于对日期进行操作, 例如: `current_date()`, `current_timestamp()`, `date_add()`, `date_sub()`, `datediff()`
+- **数学函数**: 用于对数字进行操作, 例如: `abs()`, `ceil()`, `floor()`, `round()`, `rand()`
+
+```sql  
+# 语法
+select [distinct] select_expr, ... from table_reference [where ...] [group by ...] [having ...] [order by ...] [limit ...];     
+```
 
 
 
