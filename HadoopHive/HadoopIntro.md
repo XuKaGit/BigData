@@ -147,14 +147,67 @@ HDFS通过许多设计试图解决分布式/集群化存储的问题, 这些问�
 
 ## 3. 分布式计算与MapReduce
 
-**分散-汇总模式** Vs **中心调度-步骤执行模式**
+分布式计算分为: **分散-汇总模式** Vs **中心调度-步骤执行模式**
 
 - **分散-汇总模式**: `MapReduce`
 - **中心调度-步骤执行模式**: `Spark`, `Flink`
 
-### 3.1. MapReduce概述
+- `MapReduce`是分散-汇总模式的分布式计算架构, 它提供两个两个编程接口: Map(分散) 和 Reduce(汇总).
 
- `MapReduce`是分散-汇总模式的分布式计算架构, 它提供两个两个编程接口: Map(分散) 和 Reduce(汇总).
+
+### 3.1. MapReduce的计算过程
+
+**mapreduce**的计算过程分为5个阶段: **split**, **map**, **shuffle**, **reduce**, **write**
+
+
+<p>
+
+- **split**: 指的是将源文件划分为大小相等的小数据块( 默认 128MB ). 并执行**格式化**操作, 即将划分好的分片( 小数据块)格式化为键值对 **<key,value>** 形式的数据, 其中, **key** 代表**偏移量**, **value** 代表每一行内容.
+
+<p>
+
+
+- **Map**: Hadoop 会为每一个分片构建一个 Map 任务, 并由该任务运行自定义的 `map()` 函数, 从而处理分片里的每一条记录. 
+  - 每个 Map 任务都有一个**内存缓冲区**(缓冲区大小 **100MB** ), 输入的分片数据经过 Map 任务处理后的中间结果会写入内存缓冲区中. 如果写入的数据达到内存缓冲的阈值( **80MB** ), 会启动一个线程将**内存**中的溢出数据写入**磁盘**, 同时不影响 Map 中间结果继续写入缓冲区. 
+  - 在溢写过程中,  MapReduce 框架会对 key 进行**排序**, 如果中间结果比较大, 会形成多个溢写文件.
+  - **最后的缓冲区数据也会全部溢写入磁盘形成一个溢写文件**, 如果是多个溢写文件, 则最后**合并所有的溢写文件为一个文件**.
+
+
+<p>
+
+- **Shuffle**: `Shuffle` 是 Map 和 Reduce 之间的数据传输过程. 在 Map 阶段, 每个 Map 任务都会输出一组**中间键值对**. **Shuffle** 会将 MapTask 输出的处理结果数据分发给 ReduceTask , 并在分发的过程中, 对数据按 **key** 进行分区和排序. 分区数与 Reduce 任务数相同. 
+
+
+
+
+
+- **Reduce阶段**: Reduce任务接收来自Map任务的中间键值对  `(<key, {value list}>)`, 并对每个键执行用户定义的Reduce函数, 最终以`<key, value>`的形式输出.
+
+
+- **Write**: 将Reduce阶段输出的结果(`<key, value>`) 写入到HDFS中.
+
+
+
+<div style="text-align: center;">
+    <img src="Figures\MapRed1.png" style="width: 80%; max-width: 600px; height: auto;">
+</div>
+
+
+
+<div style="text-align: center;">
+    <img src="Figures\MapRed2.png" style="width: 80%; max-width: 600px; height: auto;">
+</div>
+
+
+
+
+### 3.3. MapReduce的编程模型
+
+
+
+
+
+
 
 
 ## 4. YARN
@@ -197,3 +250,7 @@ HDFS通过许多设计试图解决分布式/集群化存储的问题, 这些问�
 
 
 
+## 5. Reference
+
+- [图文详解 MapReduce 工作流程](https://blog.csdn.net/Shockang/article/details/117970151)
+- [MapReduce基本原理及应用](https://www.cnblogs.com/lixiansheng/p/8942370.html)

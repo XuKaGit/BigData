@@ -1,6 +1,6 @@
 [TOC]
 
-## 云计算平台配置Hadoop集群
+## 云计算平台配置Hadoop/Spark 集群
 
 - 参考1: [基于阿里云服务器搭建完全分布式Hadoop集群+Hive仓库+Spark集群](https://blog.csdn.net/TYUT__pengkai/article/details/112464548)
 - 参考2: [B站-黑马程序员大数据入门到实战教程](https://www.bilibili.com/video/BV1WY4y197g7?spm_id_from=333.788.videopod.episodes&vd_source=ea310d614abfa357560d43c5ecb9fcfd&p=4)
@@ -624,12 +624,68 @@ bin/hive --service hiveserver2
 
 
 
+### 7. Anaconda安装
 
 
+- 下载anaconda的安装包, 这里我们需要在官网上查找自己需要的版本, 地址链接在下面为(https://repo.anaconda.com/archive/) ,  我自己下载的版本为(https://repo.anaconda.com/archive/Anaconda3-2023.03-1-Linux-x86_64.sh)
 
 
+```shell
+wget https://repo.anaconda.com/archive/Anaconda3-2023.03-1-Linux-x86_64.sh
+
+# 校验数据完整性
+sha256sum Anaconda3-2023.03-1-Linux-x86_64.sh
+# 运行安装脚本 
+bash Anaconda3-2023.03-1-Linux-x86_64.sh
+```
+
+- 配置环境变量
+
+```
+vim /etc/profile
+export ANACONDA_HOME=/export/server/anaconda3
+export PATH=$PATH:$ANACONDA_HOME/bin
+source /etc/profile
+```
 
 
+- 创建软连接
+
+```shell
+ln -s /export/server/anaconda3/bin/python3 /usr/bin/python3
+```
+
+### 8. Spark 单机模式
+
+- 上传`spark-3.1.2-bin-hadoop3.2.tgz`到服务器.
+<p>
+
+- 解压`tar -zxvf spark-3.1.2-bin-hadoop3.2.tgz -C /export/server`
+
+<p>
+
+- 重命名并创建软连接
+
+```
+cd /export/server
+mv spark-3.1.2-bin-hadoop3.2/ spark-local
+ln -s spark-local spark
+```
+
+- 配置环境变量
+
+```
+vim /etc/profile
+export SPARK_HOME=/export/server/spark
+export PATH=$PATH:$SPARK_HOME/bin:$SPARK_HOME/sbin
+source /etc/profile
+
+```
+
+
+- 启动Spark: `/export/server/spark/bin/pyspark --master local[2]`
+- Web界面: `http://node:4040`
+- 退出spark: `exit()`
 
 
 

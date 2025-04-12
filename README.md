@@ -2,27 +2,33 @@
 
 大数据的核心工作: 数据存储, 数据计算, 数据传输
 
+
+### EnvBuild
+
+[EnvBuild](./EnvBuild.md) --- **大数据平台的相关环境搭建**
+
+- Linux Cloud Servers
+- JDK
+- Hadoop
+- Hive
+- Anaconda
+- Spark
+
+
 ### MySQL
 
 ### Hadoop & Hive
 
-- **Apache Hadoop**: 开源的分布式处理技术栈
-  - 基于Hadoop **HDFS**的分布式数据储存
-  - 基于Hadoop **MapReduce**的分布式数据计算
-  - 基于Hadoop **YARN**的分布式资源调度
-<p>
+[HadoopIntro.md](./HadoopHive/HadoopIntro.md) --- **Hadoop理论**
+[HiveIntro.md](./HadoopHive/HiveIntro.md) --- **Hive理论**
+[HadoopPrac.md](./HadoopHive/HadoopPrac.md) --- **Hadoop实操**
+[HivePrac.md](./HadoopHive/HivePrac.md) --- **Hive实操**
 
-- Apache **Hive**分布式**SQL**平台  ( 其底层使用了Hadoop的**MapReduce**的技术)
 
 ### Spark
 
-- Apache **Spark**分布式内存计算, 用以取代**MapReduce**
+[SparkIntro.md](./Spark/SparkIntro.md) --- **Spark理论**
+[SparkPrac](./Spark/SparkPrac) --- **Spark实操**
 
 ### Flink & Kafka & Flume
 
-- Apache **Flink** 流式计算平台
-
-
-- Apache **Flume**流式数据**传输工具**
-
-- Apache **Kafka** 分布式**消息队列**
