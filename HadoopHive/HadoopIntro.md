@@ -249,8 +249,16 @@ HDFS通过许多设计试图解决分布式/集群化存储的问题, 这些问�
 - 历史服务器 (JobHistoryServer): 记录器.  (因为程序是运行在容器里的, 所以要统一)
 
 
+#### 4.2.3 YARN工作流程
+
+- YARN接受到任务时, 会启动 **AppMaster**( 进程 ), AppMaster会向RM申请资源, RM会根据集群资源情况, 返回资源给AppMaster, AppMaster根据返回的资源, 启动**Container**, Container启动后, AppMaster会向Container发送程序, Container接收到程序后, 启动程序运行.
+
+
 
 ## 5. Reference
 
 - [图文详解 MapReduce 工作流程](https://blog.csdn.net/Shockang/article/details/117970151)
 - [MapReduce基本原理及应用](https://www.cnblogs.com/lixiansheng/p/8942370.html)
+
+- [Yarn的ApplicationMaster介绍](https://blog.csdn.net/weixin_38255444/article/details/103208155)
+- [Yarn之 MRAppMaster 详解](https://www.jianshu.com/p/b81e4d9495d7)

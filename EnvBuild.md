@@ -200,6 +200,14 @@ export HADOOP_LOG_DIR=$HADOOP_HOME/logs
     <name>dfs.datanode.data.dir</name>
     <value>/data/dn</value>
   </property>
+
+
+  <property>
+    <name>dfs.webhdfs.enabled</name>
+    <value>true</value>
+    <discription>指定可以通过web访问hdfs目录</discription>
+  </property>
+
 </configuration>
 
 ```
@@ -814,7 +822,8 @@ vim spark-env.sh
 export SPARK_HISTORY_OPTS="
 -Dspark.history.ui.port=18080 
 -Dspark.history.fs.logDirectory=hdfs://node1:9820/spark/eventLogs 
--Dspark.history.retained-Applications=3"
+-Dspark.history.retained-Applications=3
+-Dspark.history.fs.cleaner.enabled=true"
 ```
 
 
@@ -921,6 +930,10 @@ inpu_rdd = sc.textFile("hdfs://node1:9820/spark/wordcount/input/data.txt")
 
 # 处理数据
 ......
+
+# 保存数据到hdfs
+result_rdd.saveAsTextFile("hdfs://node1:9820/spark/wordcount/output")
+
 ```
 
 

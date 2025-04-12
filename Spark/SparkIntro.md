@@ -60,7 +60,7 @@
 
 - MR计算是**进程**级别的, 而Spark是**线程**级别的, 所以Spark的启动速度更快, 执行效率更高.
 
-### 2. 3种工作模式
+### 2. 三种工作模式与Web页面介绍
 
 #### 2.1 单机模式
 
@@ -106,18 +106,57 @@
 
 - 具体安装见 `EnvBuild.md`
 
+- 集群提交任务:
+   ```shell
+
+   # 提交任务 pi.py
+   /export/server/spark/bin/spark-submit --master spark://node1:7077 /export/server/spark/examples/src/main/python/pi.py 10
+
+   ```
+
+- 进入集群模式python编程:
+   ```shell
+   /export/server/spark/bin/pyspark --master spark://node1:7077
+   ```
+
+#### 2.3. Spark程序运行的层次结构
+
+在Spark程序中, 一个程序( 对应一个**Driver**进程)由多个Job组成, 一个Job由多个Stage组成, 一个Stage由多个Task组成.
+
+- 在分布式集群模式下, 任何一个Spark程序( **任务**)都是由1个**Driver**和多个**Executor**组成的. 
+  - **Driver** 和 **Executor** 都是进程, 都是在有任务时才会启动.
+  - **Driver**负责将任务拆分成多个**Task**, 并将Task发送给**Executor**, Executor负责执行Task并返回结果给Driver. Driver和Executor都运行在集群的各个节点上.
+  - **独立进程**: Driver 运行在独立的 JVM 中, 这意味着它与Master分开.所以Driver关闭不影响Master进程.
+
+
+#### 2.4. Spark Web页面
+
+- **node1:4040**: 是一个运行的Application在运行的过程中临时绑定的端口, 用以查看当前任务的状态. 有新任务就会有一个4040, 4040被占用会顺延到4041, 4042等. 4040是一个临时端口, 当前程序运行完成后, 4040就会被注销. 4040和Driver相关联, 一个Driver启动起来, 一个4040端口就被绑定起来, 并可以查看该程序的运行状态.
+
+
+- **node1:8080:** 默认情况是StandAlone下, Master角色(进程)的WEB端口, 用以查看当前Master( 集群)的状态。(Driver和Master是两个东西, Master进程用于管理集群, Driver用于管理某次运行的程序, 某个Driver程序运行完成, 其所绑定的4040端口释放, 但不会影响到Master进程)
+
+- **node1:18080:** 默认是历史服务器的端口( 可以理解为是**历史Driver查看器**), 由于每个程序运行完成, 4040端口就要被注销, 在以后想回看某个程序的运行状态就可以通过历史服务器查看, 历史服务器长期稳定运行, 可供随时查看记录的程序的运行过程.
 
 
 
 
+#### 2.5 Spark YARN模式
+- YARN模式,使用Hadoop YARN作为集群管理器,可以在Hadoop集群上运行,需要配置Hadoop YARN环境.
+- 具体安装见 `EnvBuild.md`
+
+
+### 3. PySpark本地环境( Windows)搭建
+
+- 1. 安装Anaconda
 
 
 
-### 3. Spark RDD
+### 4. Spark RDD
 
-### 4. Spark 算子
+### 5. Spark 算子
 
-### 5. Spark SQL
+### 6. Spark SQL
 
 ### Other Spark Topics
 
@@ -146,3 +185,4 @@ SparkContext 可以用来创建 RDD 和广播变量, 并且还可以执行与集
 
 - [大数据面试题：Spark和MapReduce之间的区别？各自优缺点？](https://blog.csdn.net/qq_41544550/article/details/133658290)
 - [知乎用户4omIIF对于”MapReduce和Spark的区别是什么“的回答](https://www.zhihu.com/question/53354580)
+- [2024-02-21（Spark）](https://blog.csdn.net/weixin_44847812/article/details/136206678#:~:text=4040%EF%BC%9A%E6%98%AF%E4%B8%80%E4%B8%AA%E8%BF%90%E8%A1%8C%E7%9A%84Application%E5%9C%A8%E8%BF%90%E8%A1%8C%E7%9A%84%E8%BF%87%E7%A8%8B%E4%B8%AD%E4%B8%B4%E6%97%B6%E7%BB%91%E5%AE%9A%E7%9A%84%E7%AB%AF%E5%8F%A3%EF%BC%8C%E7%94%A8%E4%BB%A5%E6%9F%A5%E7%9C%8B%E5%BD%93%E5%89%8D%E4%BB%BB%E5%8A%A1%E7%9A%84%E7%8A%B6%E6%80%81%E3%80%82%204040%E8%A2%AB%E5%8D%A0%E7%94%A8%E4%BC%9A%E9%A1%BA%E5%BB%B6%E5%88%B04041%EF%BC%8C4042%E7%AD%89%E3%80%82,4040%E6%98%AF%E4%B8%80%E4%B8%AA%E4%B8%B4%E6%97%B6%E7%AB%AF%E5%8F%A3%EF%BC%8C%E5%BD%93%E5%89%8D%E7%A8%8B%E5%BA%8F%E8%BF%90%E8%A1%8C%E5%AE%8C%E6%88%90%E5%90%8E%EF%BC%8C4040%E5%B0%B1%E4%BC%9A%E8%A2%AB%E6%B3%A8%E9%94%80%E3%80%82%204040%E5%92%8CDriver%E7%9B%B8%E5%85%B3%E8%81%94%EF%BC%8C%E4%B8%80%E4%B8%AADriver%E5%90%AF%E5%8A%A8%E8%B5%B7%E6%9D%A5%EF%BC%8C%E4%B8%80%E4%B8%AA4040%E7%AB%AF%E5%8F%A3%E5%B0%B1%E8%A2%AB%E7%BB%91%E5%AE%9A%E8%B5%B7%E6%9D%A5%EF%BC%8C%E5%B9%B6%E5%8F%AF%E4%BB%A5%E6%9F%A5%E7%9C%8B%E8%AF%A5%E7%A8%8B%E5%BA%8F%E7%9A%84%E8%BF%90%E8%A1%8C%E7%8A%B6%E6%80%81%E3%80%82)
