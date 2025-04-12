@@ -29,7 +29,7 @@
 
 - 如何区分Linux文件路径与HDFS文件路径
   - Linux : `file:///`, 比如环境变量配置文件(`/etc/profile`)的路径可以写为 `file:///etc/profile`
-  - HDFS : `hdfs://namenode:port/`, 比如我们创建的一个`demo.txt`路径可以写作`hdfs://node1:8020/demo.txt`
+  - HDFS : `hdfs://namenode:port/`, 比如我们创建的一个`demo.txt`路径可以写作`hdfs://node1:9820/demo.txt`
   - **但是**通常情况下协议头`file://`, `hdfs://namenode:port/`可以**省略**
 
 - **shell命令行一般格式**: `hadoop fs [generic options]` (老版本)  或 `hdfs dfs [generic options]` (新版本)
@@ -46,7 +46,7 @@
 
 - **上传文件到HDFS指定目录下** : ```hdfs dfs -put [f] [-p] <localsrc >  ... <dst>```. 作用:将单个的源文件src或者多个源文件srcs从本地文件系统(linux)拷贝到目标文件系统中（`<dst>`对应的路径, 在HDFS文件系统中）. 也可以从标准输入中读取输入, 写入目标文件系统中.
   - 例子1: `hdfs dfs -put test.txt /data` : 将本地hadoop用户home目录下的`test.txt`文件上传到HDFS文件系统的 `/data`目录下
-  - 例子2: `hdfs dfs -put file:///etc/profile hdfs://node1:8020/data`
+  - 例子2: `hdfs dfs -put file:///etc/profile hdfs://node1:9820/data`
   - 如果报错`IOException: Got error, status=ERROR, status message , ack with firstBadLink as 39.108.123.147:9866`, 则需要在三台云服务器上打开9866接口
 <p>
 

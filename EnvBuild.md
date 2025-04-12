@@ -20,7 +20,7 @@
 
 - 第一步是建立ip映射,由于是云端服务器,我们直接使用真实的**公网ip**.**每台**服务器内均配置此文件(对应的服务器对自己操作时最好用自己的**内网ip**). 
 
-- 以作为node1的服务器为例, 在命令行输入 `vim /etc/hosts`并在文件中添加:
+- 以作为node1的服务器为例, 在命令行输入 `vim /etc/hosts`并在文件中**最前面**添加:
     ```
     node1私网ip    node1
     node2公网ip    node2
@@ -94,7 +94,10 @@ export PATH=.:$JAVA_HOME/bin:$PATH
 使用**Hadoop3.3.4**
 
 
-#### 3.1. 对于Node1执行以下操作
+#### 3.1. 主要文件配置
+
+
+**对于Node1,2,3 执行以下操作：**
 
 - 1. **上传并解压Hadoop安装包**: 解压到`/export/server`中`tar -zxvf hadoop-3.3.4.tar.gz -C /export/server` 
 
@@ -102,20 +105,25 @@ export PATH=.:$JAVA_HOME/bin:$PATH
 
 **关于Hadoop文件夹里的内容请见附录**
 
-- 3. **修改配置文件**: 配置HDFS集群, 主要涉及修改以下存放于 `/export/server/hadoop/etc/hadoop`中的文件
-  - workers: 配置从节点 DataNode
+<p>
+
+**修改配置文件**: 配置HDFS集群, 主要涉及修改以下存放于 `/export/server/hadoop/etc/hadoop`中的文件
+  
+  
+- 3. **workers: 配置从节点 DataNode**
  
-  ```
-  # 进入workers文件
-  cd etc/hadoop
-  vim workers
-  # 删除localhost
-  # 填入以下内容 (表明集群记录了3个DataNode)
-  node1
-  node2
-  node3
-  ```
-  - hadoop-env.sh: 配置Hadoop相关文件
+```
+# 进入workers文件
+cd etc/hadoop
+vim workers
+# 删除localhost
+# 填入以下内容 (表明集群记录了3个DataNode)
+node1
+node2
+node3
+```
+
+- 4. **hadoop-env.sh: 配置Hadoop相关路径**
   
 ```
 vim hadoop-env.sh
@@ -125,19 +133,21 @@ export HADOOP_HOME=/export/server/hadoop
 export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
 export HADOOP_LOG_DIR=$HADOOP_HOME/logs
  ```
-  - core-site.xml: Hadoop核心配置文件, 见附录4.2
+- 5. **core-site.xml: Hadoop核心配置文件**, 见**附录A2**
 
 ```
 # 在文件内部填入如下内容
 <configuration>
   <property>
+  
     <name>fs.defaultFS</name>
-    <value>hdfs://node1:8020</value>
+    <value>hdfs://node1:9820</value>
+
   </property>
   
   <property>
     <name>hadoop.tmp.dir</name>
-    <value>/data/tmp</value>
+    <value>/export/server/hadoop/tmp</value>
   </property>
 
   <property>
@@ -146,7 +156,7 @@ export HADOOP_LOG_DIR=$HADOOP_HOME/logs
   </property>
 <configuration>
 ```
-  - hdfs-site.xml: HDFS核心配置文件, 见附录4.3
+- 6. **hdfs-site.xml: HDFS核心配置文件**, 见**附录A3**
 
 ```
 # 在文件中填入以下内容
@@ -154,6 +164,16 @@ export HADOOP_LOG_DIR=$HADOOP_HOME/logs
   <property>
     <name>dfs.datanode.data.dir.perm</name>
     <value>700</value>
+  </property>
+
+  <property>
+    <name>dfs.namenode.secondary.http-address</name>
+    <value>node1:9868</value>
+  </property>
+
+  <property>
+    <name>dfs.namenode.http-address</name>
+    <value>node1:9870</value>
   </property>
 
   <property>
@@ -185,24 +205,20 @@ export HADOOP_LOG_DIR=$HADOOP_HOME/logs
 ```
 
 
-- 4. **将`hadoop`分发到node2,node3**: 在node1执行以下操作(可能会非常慢)
-```
-cd /export/server
-scp -r hadoop node2:`pwd`/
-scp -r hadoop node3:`pwd`/
-```
-
-#### 3.2. 对于Node1,2,3 执行以下操作
+#### 3.2. 其他
 
 
-- 1. **新建数据目录**: 在node1创建文件夹`mkdir -p /data/nn`, 在node1,2,3创建文件夹`mkdir -p /data/dn`
+**对于Node1,2,3 执行以下操作:**
+
+
+- 1. **新建数据目录**: 在**node1**创建文件夹`mkdir -p /data/nn`, 在**node1,2,3**创建文件夹`mkdir -p /data/dn`
 - 2. **配置环境变量**:
 ```
 vim /etc/profile
 # 添加
 export HADOOP_HOME=/export/server/hadoop
 export PATH=$PATH:$HADOOP_HOME/bin:$HADOOP_HOME/sbin
------执行修改i
+-----执行修改
 source /etc/profile
 ```
 
@@ -214,12 +230,28 @@ chown -R hadoop:hadoop /data
 chown -R hadoop:hadoop /export
 ```
 - 4. **格式化namenode**:
+
+
+  - **Notice:**格式化其实就是创建了一系列的文件夹, 这两个文件夹的是 **/export/server/hadoop/logs**和 **/export/server/hadoop/tmp**, 如果想要格式化第二次, 需要删除第一次格式化产生的文件夹( 即删除 **/export/server/hadoop/logs**, **/export/server/hadoop/tmp**), 否则会报错.
+
+  <p>
+
+  - 其实可以在格式化前看有哪些文件, 格式化后看有哪些文件, 就可以比较出格式化创建了哪些文件.
+
 ```
 # 切换到hadoop用户
 su - hadoop
 # 格式化namenode
 hadoop namenode -format
 ```
+
+
+<p>
+
+
+
+
+
 - 5. **启动Hadoop集群**
 ```
 # hadoop用户下执行启动
@@ -690,37 +722,222 @@ source /etc/profile
 
 
 
+
+
+### 9. Spark Standalone模式
+
+- 每一台服务器都要安装Anaconda, 否则将找不到python3环境 (如果有 /usr/bin/python3, 则不需要安装Anaconda)
+- 在**每一台机器**下配置以下内容:
+
+
+#### 9.1 解压/重命名/创建软连接/配置环境变量
+
+- **解压**`tar -zxvf spark-3.1.2-bin-hadoop3.2.tgz -C /export/server`
+
+<p>
+
+- **重命名并创建软连接**
+
+```shell
+cd /export/server
+
+# 之前的spark-local可以不用删除
+mv spark-3.1.2-bin-hadoop3.2/ spark-standalone
+# 删除软连接
+rm -rf spark
+# 创建软连接
+ln -s spark-standalone spark
+```
+
+- **配置环境变量** (如果部署saprk-local是改过了, 则不需要再改了)
+
+```
+vim /etc/profile
+export SPARK_HOME=/export/server/spark
+export PATH=$PATH:$SPARK_HOME/bin:$SPARK_HOME/sbin
+source /etc/profile
+
+```
+
+#### 9.2 修改配置文件(spark-env.sh)
+
+
+```shell
+cd /export/server/spark/conf
+# 重命名
+mv spark-env.sh.template spark-env.sh
+
+vim spark-env.sh
+
+## 22行
+export JAVA_HOME=/export/server/jdk1.8.0
+export HADOOP_CONF_DIR=/export/server/hadoop/etc/hadoop
+
+# 60行左右
+export SPARK_MASTER_HOST=node1   # Spark主节点所在的地址
+export SPARK_MASTER_PORT=7077    # Spark主节点内部通信端口, 用于接收客户端请求
+export SPARK_MASTER_WEBUI_PORT=8080  # Spark主节点WebUI端口, 用于展示集群状态
+export SPARK_WORKER_CORES=1       # 每个Spark工作节点可用的CPU核数
+export SPARK_WORKER_MEMORY=1g   # 每个Spark工作节点可用的内存大小
+export SPARK_WORKER_PORT=7078    # Spark工作节点内部通信端口, 用于接收Master节点请求
+export SPARK_WORKER_WEBUI_PORT=8081  # Spark工作节点WebUI端口, 用于展示节点状态
+export SPARK_DAEMON_MEMORY=1g   # Spark进程本身可用的内存大小
+
+```
+
+#### 9.3 添加jobHistoryServer (Optional)
+
+
+- 9.3.1. **在hadoop文件系统种创建存放日志的目录**
+  
+```shell
+start-dfs.sh
+hdfs dfs -mkdir -p /spark/eventLogs/
+```
+
+- **9.3.2. 修改spark-defaults.conf.template文件**
+```shell
+cd /export/server/spark/conf
+mv spark-defaults.conf.template spark-defaults.conf
+vim spark-defaults.conf
+# 在末尾添加
+spark.eventLog.enabled     true
+spark.eventLog.dir         hdfs://node1:9820/spark/eventLogs
+spark.eventLog.compress    true 
+```
+
+- **9.3.3. 修改spark-env.sh文件**
+
+```shell
+vim spark-env.sh
+# 在末尾添加
+export SPARK_HISTORY_OPTS="
+-Dspark.history.ui.port=18080 
+-Dspark.history.fs.logDirectory=hdfs://node1:9820/spark/eventLogs 
+-Dspark.history.retained-Applications=3"
+```
+
+
+
+
+#### 9.4. 修改workers文件
+
+
+```shell
+mv workers.template workers
+vim workers
+# 删掉localhoost, 添加以下内容
+node1
+node2 
+node3
+```
+
+#### 9.5. 修改log4j.properties文件
+
+```shell
+mv log4j.properties.template log4j.properties
+vim log4j.properties
+
+# log4j的5种级别: DEBUG < INFO < WARN < ERROR < FATAL < OFF
+# 19行, 修改日志级别为WARN
+log4j.rootCategory=WARN, console
+
+```
+
+#### 9.6. 创建/tmp/spark-events  (optional, 报错再加)
+
+服务器本地创建文件夹:`mkdir /tmp/spark-events`
+
+#### 9.7. Spark集群启动与监控
+
+- 启动集群
+
+```shell
+# 启动master
+cd /export/server/spark
+sbin/start-master.sh
+
+# 启动所有worker
+sbin/start-workers.sh
+
+# 启动当前节点上的worker
+sbin/start-worker.sh
+
+# 启动jobHistoryServer
+sbin/start-history-server.sh
+```
+
+- 停止集群
+
+```shell
+# 停止当前节点上的worker
+sbin/stop-worker.sh
+# 停止所有worker
+sbin/stop-workers.sh
+# 停止master
+sbin/stop-master.sh
+# 停止jobHistoryServer
+sbin/stop-history-server.sh
+```
+
+
+- 监控
+
+```shell
+
+jps-cluster.sh 
+
+
+监控页面: http://node1:8080
+
+日志服务监控页面: http://node1:18080
+
+```
+
+
+#### 9.8 Spark集群提交任务--测试
+```shell
+
+# 提交任务 pi.py
+/export/server/spark/bin/spark-submit --master spark://node1:7077 /export/server/spark/examples/src/main/python/pi.py 10
+
+```
+
+
+```shell
+# 测试wordcount
+
+## 把数据上传到hdfs
+hdfs dfs -mkdir -p /spark/wordcount/input
+hdfs dfs -put /root/data.txt /spark/wordcount/input
+
+
+## 进入集群模式, 回顾本地模式为  /export/server/spark/bin/pyspark --master local[2]
+/export/server/spark/bin/pyspark --master spark://node1:7077
+
+##读取hdfs数据
+inpu_rdd = sc.textFile("hdfs://node1:9820/spark/wordcount/input/data.txt")  
+# inpu_rdd = sc.textFile("spark/wordcount/input/data.txt") 也行
+
+# 处理数据
+......
+```
+
+
+
+
+
 ###  附录
 
-#### A1 Hadoop文件夹
+#### A1 Hadoop文件夹目录解读
 
 在进行3.1的第二步操作之后, `cd export/server/hadoop` 并 `ls -l`得到: 
 
 <div style="text-align: center;">
-    <img src="Figures\hadoop_files.png" style="width: 80%; max-width: 600px; height: auto;">
+    <img src="HadoopHive\Figures\hadoop_files.png" style="width: 80%; max-width: 600px; height: auto;">
 </div>
 
-
-#### A2
-
-<div style="text-align: center;">
-    <img src="Figures\附录2.jpg" style="width: 80%; max-width: 600px; height: auto;">
-</div>
-
-#### A3
-
-<div style="text-align: center;">
-    <img src="Figures\附录3.1.jpg" style="width: 80%; max-width: 600px; height: auto;">
-</div>
-
-
-#### A4
-
-<div style="text-align: center;">
-    <img src="Figures\附录3.2.jpg" style="width: 80%; max-width: 600px; height: auto;">
-</div>
-
-
+其中: 
 
 - **bin**: 存放Hadoop各种应用程序(命令)
 - **etc**: 存放Hadoop的配置文件
@@ -729,3 +946,87 @@ source /etc/profile
 - lib: 存放Linux系统的动态链接库 (.so)
 - libexec: 存放配置Hadoop系统的脚本文件 (.sh/.cmd)
 - share: 存放二进制源码(Java jar包)
+
+
+#### A2 Hadoop core-site.xml配置内容解读
+
+<div style="text-align: center;">
+    <img src="HadoopHive\Figures\附录2.jpg" style="width: 80%; max-width: 600px; height: auto;">
+</div>
+
+#### A3 hdfs-site.xml配置内容解读
+
+<div style="text-align: center;">
+    <img src="HadoopHive\Figures\附录3.1.jpg" style="width: 80%; max-width: 600px; height: auto;">
+</div>
+
+
+
+<div style="text-align: center;">
+    <img src="HadoopHive\Figures\附录3.2.jpg" style="width: 80%; max-width: 600px; height: auto;">
+</div>
+
+
+#### A4 端口详情
+
+
+- **HDFS-NameNode的通信端口(客户端请求)**: 在 **core-site.xml**中配置的`fs.defaultFS`的值, 默认为`hdfs://node1:9820`. 注意在hadoop1.x时代默认值是`hdfs://node1:9000`, 在hadoop2.x时代默认值是`hdfs://node1:8020`, 在hadoop3.x时代默认值是`hdfs://node1:9820`.
+
+
+
+<p>
+
+
+- **HDFS-NameNode的Web访问端口**: 在**hdfs-site.xml**中配置的`dfs.namenode.http-address`的值, 默认为`node1:9870`.
+
+<p>
+
+- **HDFS-SecondaryNameNode的通信端口**: 在**hdfs-site.xml**中配置的`dfs.namenode.secondary.http-address`的值, 默认为`node1:9868`.
+
+- **HDFS-DataNode的通信端口**: 在**hdfs-site.xml**中配置的`dfs.datanode.address`的值, 默认为`node1:9866`.
+
+```shell
+<property>
+  <name>dfs.datanode.address</name>
+  <value> :9866</value>
+</property>
+```
+
+<p>
+
+- **MapReduce-JobHistoryServer的通信端口(客户端请求)**: 在**mapred-site.xml**中配置的`mapreduce.jobhistory.address`的值, 默认为`node1:10020`.
+
+- **MapReduce-JobHistoryServer的Web访问端口**: 在**mapred-site.xml**中配置的`mapreduce.jobhistory.webapp.address`的值, 默认为`node1:19888`.
+
+<p>
+
+- **YARN ResourceManager的通信端口(客户端请求)**: 在**yarn-site.xml**中配置的`yarn.resourcemanager.address`的值, 默认为`node1:8032`.
+
+
+<p>
+
+- **YARN ResourceManager的Web访问端口**: 在**yarn-site.xml**中配置的`yarn.resourcemanager.webapp.address`的值, 默认为`node1:8088`.
+
+
+<p>
+
+- **YARN其他端口**: 见 **reference 1,2**.
+
+- **HiveServer2的通信端口(客户端请求)**: 在**hive-site.xml**中配置的`hive.server2.thrift.port`的值, 默认为`10000`.
+
+<p>
+
+- **Hive Metastore Server的通信端口**: 在**hive-site.xml**中配置的`hive.metastore.uris`的值, 默认为`thrift://node1:9083`.
+
+
+- **Spark HistoryServer的通信端口**: 默认为`18080`.
+
+
+- **Spark其他端口**: 见 `9.2 spark-env.sh`的配置
+
+
+### Reference
+
+- 1. [关于hadoop的几个默认端口 hadoop3端口](https://blog.51cto.com/u_16099179/7009281)
+- 2. [Hadoop集群配置之主要配置文件](https://blog.csdn.net/m0_60511809/article/details/135254570)
+- 3. [通过日志聚合将YARN作业日志存储在HDFS中](https://www.cnblogs.com/yinzhengjie/p/13943340.html)

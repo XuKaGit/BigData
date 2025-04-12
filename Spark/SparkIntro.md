@@ -60,7 +60,7 @@
 
 - MR计算是**进程**级别的, 而Spark是**线程**级别的, 所以Spark的启动速度更快, 执行效率更高.
 
-### 2. 环境搭建
+### 2. 3种工作模式
 
 #### 2.1 单机模式
 
@@ -94,6 +94,50 @@
    ```
 
 
+
+#### 2.2 Spark Standalone模式
+
+- Standalone模式是Spark自带的集群管理器,可以在集群上运行,需要配置集群环境.
+
+
+<div style="text-align: center;">
+    <img src="Figures\spark_alone.jpg" style="width: 80%; max-width: 600px; height: auto;">
+</div>
+
+- 具体安装见 `EnvBuild.md`
+
+
+
+
+
+
+
+
+### 3. Spark RDD
+
+### 4. Spark 算子
+
+### 5. Spark SQL
+
+### Other Spark Topics
+
+#### **SparkContext**
+
+SparkContext, 简称为 **SC**. SparkContext 是 PySpark 中最重要的类之一, 它是与 Spark 集群连接的主要入口点, 并提供了对 Spark 的核心功能的访问.
+<p>
+
+SparkContext 可以用来创建 RDD 和广播变量, 并且还可以执行与集群相关的一些操作. 可以通过使用 SparkContext 对象来调用各种方法, 以及配置和管理 Spark 应用程序.
+
+<p>
+
+可能的一个错误: 文件 `/tmp/spark-events` 不存在.
+- 这个错误通常是由于 SparkContext 在启动时无法找到该文件而引起的.`/tmp/spark-events` 文件夹是 Spark 在运行过程中生成的事件日志文件的存储位置. SparkContext 在启动时会尝试去该文件夹存放日志文件, 以便后续的监控和调试. 如果该文件夹不存在, SparkContext 将无法写入日志文件, 从而导致该错误的出现.
+
+- 解决方法: 要解决这个错误, `mkdir /tmp/spark-events`  (直接在云服务器本地创建就行)
+
+#### **SparkSession**
+
+- SparkSession是Spark 2.0引入的新概念,它是一个入口点,用于创建DataFrame、Dataset和SQLContext等对象.
 
 
 
