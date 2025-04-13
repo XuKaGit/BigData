@@ -470,3 +470,6 @@ SparkRpc 基于**netty**实现, 分为异步和同步两种方式.
 - [大数据开发-Spark-一文理解Spark中的Stage,Executor,Driver...](https://www.cnblogs.com/hulichao/p/14199688.html)
 - [Spark学习（二）：RDD详解](https://www.cnblogs.com/pinoky/p/18435294)
 - [RDD概念、特点、属性、常见操作、缓存级别](https://blog.csdn.net/qq_14815605/article/details/144272549?utm_medium=distribute.pc_relevant.none-task-blog-2~default~baidujs_baidulandingword~default-4-144272549-blog-139066491.235^v43^pc_blog_bottom_relevance_base4&spm=1001.2101.3001.4242.3&utm_relevant_index=6)
+- [Spark运行原理【史上最详细】](https://blog.csdn.net/lovechendongxing/article/details/81746988)
+- [Spark工作原理及基础概念（超详细！）](https://blog.csdn.net/weixin_45366499/article/details/110010589)
+- [spark-RDD原理与操作(超级详细)](https://blog.csdn.net/weixin_43871785/article/details/130662315?utm_medium=distribute.pc_relevant.none-task-blog-2~default~baidujs_baidulandingword~default-1-130662315-blog-139066491.235^v43^pc_blog_bottom_relevance_base4&spm=1001.2101.3001.4242.2&utm_relevant_index=3)
