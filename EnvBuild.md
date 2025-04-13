@@ -132,7 +132,7 @@ export JAVA_HOME=/export/server/jdk1.8.0
 export HADOOP_HOME=/export/server/hadoop
 export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
 export HADOOP_LOG_DIR=$HADOOP_HOME/logs
- ```
+```
 - 5. **core-site.xml: Hadoop核心配置文件**, 见**附录A2**
 
 ```
@@ -237,7 +237,8 @@ source /etc/profile
 chown -R hadoop:hadoop /data
 chown -R hadoop:hadoop /export
 ```
-- 4. **格式化namenode**:
+
+- 4. **格式化namenode** :
 
 
   - **Notice:**格式化其实就是创建了一系列的文件夹, 这两个文件夹的是 **/export/server/hadoop/logs**和 **/export/server/hadoop/tmp**, 如果想要格式化第二次, 需要删除第一次格式化产生的文件夹( 即删除 **/export/server/hadoop/logs**, **/export/server/hadoop/tmp**), 否则会报错.
@@ -268,7 +269,7 @@ start-dfs.sh
 stop-dfs.sh
 ```
 - 6. **网络查看**
-在浏览器中搜索`node1公网ip:9870`  (记得在node1云服务器安全组配置9870端口)
+在浏览器中搜索`node1公网ip:9870`  (记得在node1云服务器安全组配置9870,9820端口)
 
 
 
@@ -982,19 +983,19 @@ result_rdd.saveAsTextFile("hdfs://node1:9820/spark/wordcount/output")
 #### A2 Hadoop core-site.xml配置内容解读
 
 <div style="text-align: center;">
-    <img src="HadoopHive\Figures\附录2.jpg" style="width: 80%; max-width: 600px; height: auto;">
+    <img src=".\HadoopHive\Figures\附录2.jpg" style="width: 80%; max-width: 600px; height: auto;">
 </div>
 
 #### A3 hdfs-site.xml配置内容解读
 
 <div style="text-align: center;">
-    <img src="HadoopHive\Figures\附录3.1.jpg" style="width: 80%; max-width: 600px; height: auto;">
+    <img src=".\HadoopHive\Figures\附录3.1.jpg" style="width: 80%; max-width: 600px; height: auto;">
 </div>
 
 
 
 <div style="text-align: center;">
-    <img src="HadoopHive\Figures\附录3.2.jpg" style="width: 80%; max-width: 600px; height: auto;">
+    <img src=".\HadoopHive\Figures\附录3.2.jpg" style="width: 80%; max-width: 600px; height: auto;">
 </div>
 
 
