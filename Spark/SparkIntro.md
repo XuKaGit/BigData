@@ -296,9 +296,10 @@ rdd.count()  # 两次调用count, 不会重复计算, 因为rdd已经缓存了
 
 
 
-<div style="text-align: center;">
-    <img src="Figures\sparkcore.png" style="width: 80%; max-width: 600px; height: auto;">
-</div>
+<center class="half">
+<img src="./Figures\sparkcore.png" width=350, height="250"/>
+</center>
+
 
 
 ### 3.1. Spark Core - 基础配置
