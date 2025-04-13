@@ -1,21 +1,26 @@
-## Introduction to  Spark
+# Spark Concepts & Principles
 
 
-### 1. Spark框架的概述
+## 1. Spark Overview
+
+
+### 1.1 Spark Concepts
 
 - **Spark定义**: Apache Spark是用于大规模数据(large-scala data)处理的统一(unified)分析引擎.
+
 - **Spark起源**: Spark最早源于一篇论文 *Resilient Distributed Datasets: A Fault-Tolerant Abstraction for In-Memory Cluster Computing*, 论文中提出了一种弹性分布式数据集(RDD)的概念.
+
 <p>
 
 - **RDD**: RDD是一种分布式内存抽象,其使得程序员能够在大规模集群中做**内存运算**,并且有一定的**容错**方式.而这也是整个Spark的核心数据结构,Spark整个平台都围绕着RDD进行.
 
 - **Spark**是由**Scala**语言编写的
 
+- 在Spark中, **数据**都叫**RDD**; **方法**都叫**算子**; **计算过程/计算逻辑**都叫**DAG(有向无环图)**.
 
-- 在Spark中, **数据**都叫**RDD**; **方法**都叫**算子**; **程序**都叫**DAG(有向无环图)**.
 
+### 1.2. Spark Components
 
-#### 1.1 Spark的组成
 
 - **Spark Core**: Spark Core是Spark的核心,它实现了Spark的基本功能,包括任务调度,内存管理,错误恢复,与存储系统交互等. 可以基于多种语言进行编程,如Scala,Java,Python等.
 
@@ -36,9 +41,12 @@
 - **GraphX**: GraphX是Spark的一个模块,它提供了图计算能力,包括图算法,图存储和图计算优化等.
 
 
+<div style="text-align: center;">
+    <img src="Figures\sparkoverview.png" style="width: 80%; max-width: 600px; height: auto;">
+</div>
 
 
-#### 1.2 Spark运行的3种模式
+### 1.3. Spark运行的3种模式
 
 - **Local模式**: 本地模式,用于开发和测试,可以在本地机器上运行,不需要集群环境.
 - **Standalone模式**: 独立模式,Spark自带的集群管理器,可以在集群上运行,需要配置集群环境.
@@ -47,7 +55,7 @@
 
 
 
-#### 1.3 Spark为什么比mapreduce快
+### 1.4. Spark为什么比mapreduce快
 
 - **内存计算**: Spark将数据保存在内存中,而MapReduce将数据保存在磁盘上,因此Spark的计算速度比MapReduce快.
    
@@ -60,9 +68,294 @@
 
 - MR计算是**进程**级别的, 而Spark是**线程**级别的, 所以Spark的启动速度更快, 执行效率更高.
 
-### 2. 三种工作模式与Web页面介绍
 
-#### 2.1 单机模式
+
+## 2. Spark基本运行原理
+
+
+
+### 2.1. Spark程序运行的层次结构
+
+- 在Spark程序中, 一个**任务**( 或者说**Application**, 比如对一个文件进行`wordcount`)由多个**Job**组成, 一个**Job**由多个**Stage**组成, 一个**Stage**由多个**Task (线程)**组成.
+
+<div style="text-align: center;">
+    <img src="Figures\stream.png" style="width: 80%; max-width: 600px; height: auto;">
+</div>
+
+
+<p>
+
+### 2.2. Spark集群角色
+
+下图是spark的集群角色图, 主要有集群管理节点**cluster manager**, 工作节点**worker**, **执行器executor**, **驱动器driver**和应用程序**application** 五部分组成.
+
+
+<div style="text-align: center;">
+    <img src="Figures\roles.png" style="width: 80%; max-width: 600px; height: auto;">
+</div>
+
+
+#### 2.2.1. Cluster Manager
+
+**集群管理器**, 主要用来对应用程序申请的资源进行管理. 根据其部署模式的不同, 可以分为`local`, `standalone`, `yarn`等模式.
+ - 在`standalone`模式下, 集群管理器在**Master进程**中.
+ - 在 `YARN` 模式下，集群管理器是由 `YARN ResourceManager` 负责.
+
+#### 2.2.2. Worker
+
+worker是spark的工作节点, 主要工作职责有下面四点:
+
+- worker节点cluster manager汇报自身的cpu, 内存等信息.
+- worker 节点在cluster manager作用下创建并启用executor, executor是真正的计算单元.
+- driver 将任务Task分配给worker节点上的executor并执行运用.
+- worker节点同步资源信息和executor状态信息给cluster manager.
+
+**Notice**: 在`yarn` 模式下运行worker节点一般指的是`NodeManager`节点, `standalone`模式下运行一般指的是`worker / slave`节点.
+
+
+#### 2.2.3. Executor
+
+**执行器**, 是真正执行spark任务的地方, 它是**worker**上的一个进程, 负责运行**Task**, 并将结果返回给**driver**. 每个应用程序都有自己独立的executor, 它们之间是相互独立的, 不会互相影响. Executor创建完成后会向driver反向注册，, 以便driver可以分配task给他执行.
+
+
+<div style="text-align: center;">
+    <img src="Figures\worker.png" style="width: 80%; max-width: 600px; height: auto;">
+</div>
+
+#### 2.2.4. Driver
+
+- 驱动器节点, 它是一个运行Application中**main函数**并创建**SparkContext**的**进程**. 
+
+<p>
+
+- 创建SparkContext的目的是为了准备Spark应用程序的运行环境, 即SparkContext负责和ClusterManager通信, 进行资源的申请(cpu、内存等)、任务的分配和监控等工作. 当程序执行完毕后, SparkContext负责释放资源.
+
+<p>
+
+- Driver节点也负责提交Job, 并将Job转化为Task, 在各个Executor进程间协调Task的调度.
+
+<p>
+
+
+- Driver根据应用程序执行代码, 将整个程序根据action算子划分成多个job, 每个job内部构建DAG图, DAG Scheduler将DAG图划分为多个stage, 同时每个stage内部划分为多个task, DAG Scheduler将taskset传给Task Scheduer, Task Scheduer负责集群上task的调度.
+
+
+
+#### 2.2.5. Application
+
+application是Spark API 编程的应用程序, 它包括实现Driver功能的代码和在程序中各个executor上要执行的代码, 一个application由多个job组成. 其中应用程序的入口为用户所定义的main方法.
+
+
+### 2.3. RDD
+
+**Definition:** Spark RDD(Resilient Distributed Dataset)是 Spark 中最基本的数据抽象, 它代表一个不可变、可分区、元素可以并行计算的数据集合. RDD是一个数据集的表示, 不仅表示了数据集, **也同时表示了这个数据集从哪来, 以及如何计算.**
+
+
+
+***Remark:*** **RDD并不实际存储真正要计算的数据**, 而是记录的数据的位置,数据的转换关系;同时, 所有的RDD转换都是一个惰性求值的过程, 只有当发生一个要求返回结果给driver的action动作时, 才会真正地运行.
+
+
+#### 2.3.1. RDD不可变性
+
+- 一旦创建, RDD 的数据不可改变. 所有对 RDD 的操作(如 map, filter, reduce 等)都会生成一个**新的 RDD**, 而不会修改原始 RDD.
+
+<p>
+
+- 这种不可变性使得 RDD 在分布式计算环境下非常稳定, 避免了并发冲突.
+
+#### 2.3.2. RDD分区
+
+**RDD是一组分区(list of partitions)**. 每个分区在集群中的不同worker节点上, 并由一个计算任务来处理.RDD是逻辑概念, 分区是**物理概念**. 用户可以在创建RDD时指定RDD的分片个数, 如果没有指定, 那么就会采用默认值.默认值就是**程序所分配到的CPU Core的数目**
+
+
+
+- **Partitioner(RDD分片函数)**: 决定RDD如何进行分区, RDD的分区函数决定了数据如何分布到各个节点上.
+   - 基于哈希的HashPartitioner, (key.hashcode % 分区数= 分区号). 它是默认值.
+   - 基于范围的RangePartitioner. 
+   - 只有对于key-value的RDD,并且产生shuffle, 才会有Partitioner;
+   - 非key-value的RDD的Parititioner的值是None
+
+
+- **每个分区的都有计算函数(function for computing each split)**: 在RDD中有一系列函数, 用于"处理计算"每个分区中的数据,这里把"函数"叫算子. 
+
+
+
+
+
+#### 2.3.3. RDD容错性
+- RDD 包含血统信息, 记录了该 RDD 如何通过一系列转换操作从原始数据中构建出来.
+
+- 每个 RDD 都有一个或多个**依赖关系**, 表示它是如何由其它 RDD 转换得到的. RDD 之间的依赖关系有两种: 
+   - **窄依赖**(Narrow Dependency): 每个父 RDD 的分区对应一个子 RDD 的分区. 例如，`map`、`filter`、`union` 等操作. 
+   - **宽依赖**(Wide Dependency): 父 RDD 的一个分区可能会被多个子 RDD 的分区使用. 例如, `groupBy()`、`reduceByKey()` 等操作.
+
+
+<div style="text-align: center;">
+    <img src="Figures\dep.png" style="width: 100%; max-width: 700px; height: auto;">
+</div>
+
+
+
+
+#### 2.3.4. 惰性计算机制
+
+RDD 的转换操作是惰性执行的. 即当用户对 RDD 执行操作时, 这些操作并不会立刻执行, Spark 会首先构建一个 **DAG**, 描述所有的转换步骤. 实际的计算只有在执行 **Action** 操作时才会启动.
+
+
+
+#### 2.3.5. RDD操作
+
+- **Transformation(转换):** 是对已有的RDD进行换行生成**新的RDD**, 转换过程采用**惰性计算机制**, 不会立即计算出结果. 常用的方法:
+   - map(): 对 RDD 中的每个元素应用一个函数，生成一个新的 RDD
+   - filter(): 筛选符合条件的元素，生成一个新的 RDD
+   - flatMap(): 类似于 map()，但每个元素可以映射为多个输出元素
+   - union(): 合并两个 RDD
+   - groupBy(): 按照给定的条件将 RDD 中的数据分组
+
+
+
+<p>
+
+- **Action(执行):** 对已有对RDD对数据执行计算产生结果, 并将结果返回Driver或者写入到外部存储中. 常用方法:
+
+   - collect(): 将 RDD 中的所有元素收集到本地
+   - count(): 计算 RDD 中元素的数量
+   - reduce(): 对 RDD 中的元素进行聚合操作
+   - saveAsTextFile(): 将 RDD 中的内容保存到外部文件系统( HDFS)
+
+
+
+<div style="text-align: center;">
+    <img src="Figures\sparkoperation.png" style="width: 100%; max-width: 700px; height: auto;">
+</div>
+
+
+
+
+#### 2.3.6. RDD 的缓存机制
+
+
+- 某些RDD的计算或转换可能比较耗时, 如果这些RDD后续会被频繁地使用到, 可以考虑将这些RDD进行持久化/缓存, 使用方式如`rdd.cache`
+
+<p>
+
+- RDD通过persist(底层方法)方法或cache方法可以将前面的计算结果缓存, **但是并不是这两个方法被调用时立即缓存**, 而是触发后面的action时，该RDD将会被缓存在计算节点的内存中，并供后面快速重用.
+
+<p>
+
+
+- 缓存的级别有很多, 默认只存储在内存当中, 在开发中通常使用**memory_and_disk**
+
+```python
+# an example
+rdd = sc.textFile("file.txt")   # file.txt是订单数据, 大小50MB
+
+rdd.cache()  # 缓存, 不会触发计算, cache is a transformer
+rdd.count()  #  第一次计算, 会慢一点, 但是结果已经缓存
+rdd.count()  # 两次调用count, 不会重复计算, 因为rdd已经缓存了
+
+```
+
+
+### 2.4. DAG/Job/Stage/Task
+
+- **DAG**: DAG(Directed Acyclic Graph)有向无环图, 是由一系列**RDD**和**操作**组成的计算流程图. DAG描述了RDD之间的依赖关系, 它表示了数据从输入到输出的整个计算过程.
+
+- **Job**: Job是用户程序一个完整的处理流程, 是逻辑的叫法. 一个Job就是由一个`Action`算子触发的DAG(有向无环图)计算过程. 一个Spark程序可以包含多个Job.
+
+<p>
+
+- **Stage**: 一个Job会被划分为多个Stage. Stage之间是串行的, Stage的触发是由一些shuffle,reduceBy,save动作产生的.
+   
+   - 划分Stage的一个依据是RDD间的宽窄依赖. 在对Job中的所有操作划分Stage时,一般会按照倒序进行,即从Action开始,遇到窄依赖操作,则划分到同一个执行阶段,遇到宽依赖操作,则划分一个新的执行阶段,且新的阶段为之前阶段的parent,然后依次类推递归执行
+
+   - child Stage需要等待所有的parent Stage执行完之后才可以执行,这时Stage之间根据依赖关系构成了一个大粒度的DAG.在一个Stage内,所有的操作以串行的Pipeline的方式,由一组Task完成计算.
+
+
+<p>
+
+- **Task**: 一个Stage由多个Task组成, Task是Spark程序中执行的基本单位, Task之间是并行的. 比如`sc.textFile("/xxxx").map().filter()`, 其中`map`和`filter`就分别是一个`task`. 每个task的输出就是下一个task的输出。
+
+<p>
+
+
+- **下图为两个Job的stage划分**
+
+
+<center class="half">
+<img src="./Figures/stage1.png" width=350, height="250"/>
+<img src="./Figures/stage2.png" width=350/>
+</center>
+
+
+
+
+
+
+## 3. Spark Core
+
+
+
+<div style="text-align: center;">
+    <img src="Figures\sparkcore.png" style="width: 80%; max-width: 600px; height: auto;">
+</div>
+
+
+### 3.1. Spark Core - 基础配置
+
+
+#### 3.1.1 SparkContext
+
+- SparkContext是Spark应用程序的**入口**,它负责与Spark集群进行通信,并创建RDD、Accumulator和Broadcast等对象.
+
+<p>
+
+- Spark应用程序的提交和执行离不开sparkContext, 它隐藏了网络通信、分布式部署、消息通信、存储体系、计算存储等. 开发人员只需要通过sparkContext等api进行开发即可.
+
+
+#### 3.1.2. Spark RPC 过程调用
+
+SparkRpc 基于**netty**实现, 分为异步和同步两种方式.
+
+#### 3.1.3. 事件总线
+主要用于sparkContext组件间的交换, 它属于监听者模式, 采用异步调用.
+
+#### 3.1.4. 度量系统
+
+主要用于系统的运行监控.
+
+
+
+### 3.2. Spark Core - 存储系统
+
+-  **存储系统**管理spark运行中依赖的数据存储方式和存储位置, spark的存储系统优先考虑在各节点以**内存**的方式存储数据, 内存不足时将数据写入磁盘中, 这也是spark计算性能高的重要原因.
+
+<p>
+
+- 我们可以灵活的控制数据存储在内存还是磁盘中, 同时可以通过远程网络调用将结果输出到远程存储中, 比如hdfs, hbase等.
+
+
+
+### 3.3. Spark Core - 调度系统
+
+- spark调度系统主要由**DAGScheduler**和**TaskScheduler**组成.
+
+- **DAGScheduler** 主要是把一个**Job**根据**RDD**间的依赖关系, 划分为多个**Stage**, 对于划分后的每个Stage都抽象为一个或多个Task组成的任务集, 并交给**TaskScheduler**来进行进一步的任务调度. 而**TaskScheduler** 负责对每个具体的Task进行调度. 
+
+<p>
+
+- 具体调度算法有**FIFO**, **FAIR**:
+
+   - **FIFO调度** :先进先出, 这是Spark默认的调度模式.
+   - **FAIR调度**: 支持将作业分组到池中, 并为每个池设置不同的调度权重, 任务可以按照权重来决定执行顺序.
+
+
+
+
+
+## 4. 三种工作模式与Web页面介绍
+
+### 4.1 单机模式
 
 - 见 `EnvBuild.md`
 - 本地模式启动:  
@@ -95,7 +388,7 @@
 
 
 
-#### 2.2 Spark Standalone模式
+### 4.2 Spark Standalone模式
 
 - Standalone模式是Spark自带的集群管理器,可以在集群上运行,需要配置集群环境.
 
@@ -119,17 +412,9 @@
    /export/server/spark/bin/pyspark --master spark://node1:7077
    ```
 
-#### 2.3. Spark程序运行的层次结构
-
-在Spark程序中, 一个程序( 对应一个**Driver**进程)由多个Job组成, 一个Job由多个Stage组成, 一个Stage由多个Task组成.
-
-- 在分布式集群模式下, 任何一个Spark程序( **任务**)都是由1个**Driver**和多个**Executor**组成的. 
-  - **Driver** 和 **Executor** 都是进程, 都是在有任务时才会启动.
-  - **Driver**负责将任务拆分成多个**Task**, 并将Task发送给**Executor**, Executor负责执行Task并返回结果给Driver. Driver和Executor都运行在集群的各个节点上.
-  - **独立进程**: Driver 运行在独立的 JVM 中, 这意味着它与Master分开.所以Driver关闭不影响Master进程.
 
 
-#### 2.4. Spark Web页面
+### 4.3. Spark Web页面
 
 - **node1:4040**: 是一个运行的Application在运行的过程中临时绑定的端口, 用以查看当前任务的状态. 有新任务就会有一个4040, 4040被占用会顺延到4041, 4042等. 4040是一个临时端口, 当前程序运行完成后, 4040就会被注销. 4040和Driver相关联, 一个Driver启动起来, 一个4040端口就被绑定起来, 并可以查看该程序的运行状态.
 
@@ -141,59 +426,47 @@
 
 
 
-#### 2.5 Spark YARN模式
+### 4.4 Spark YARN模式
 - YARN模式,使用Hadoop YARN作为集群管理器,可以在Hadoop集群上运行,需要配置Hadoop YARN环境.
 - 具体安装见 `EnvBuild.md`
 
 
-### 3. PySpark本地环境( Windows)搭建
-
-- 1. 安装Anaconda
-
-<p>
-
-- 2. 进入虚拟环境, 并`pip install pyspark==3.1.2` , **版本不需要太新**, 完成检查`conda list`, 看有没有**py4j & pyspark**这两个包
-
-<p>
-
-- 3. pycharm中创建项目, 使用虚拟环境.  项目下新建**文件夹:** `main , resource , data , test`  
-   - 参考[pycharm 中package, directory, sources root, resources root的区别](https://blog.csdn.net/weixin_52120741/article/details/133070942)
 
 
 
 
+## 5. Spark 算子
 
-### 4. Spark RDD
+## 6. Spark SQL
 
-### 5. Spark 算子
+- spark sql提供了基于sql的数据处理方法, 使得分布式的数据集处理变的更加简单.
 
-### 6. Spark SQL
+- spark sql提供了两种抽象的数据集合DataFrame和DataSet.
 
-### Other Spark Topics
+- DataFrame 是spark Sql 对结构化数据的抽象,可以简单的理解为spark中的表,相比较于RDD多了数据的表结构信息(schema).
 
-#### **SparkContext**
+- DataFrame = Data + schema
 
-SparkContext, 简称为 **SC**. SparkContext 是 PySpark 中最重要的类之一, 它是与 Spark 集群连接的主要入口点, 并提供了对 Spark 的核心功能的访问.
-<p>
+- RDD是分布式对象集合, DataFrame是分布式Row的集合, 提供了比RDD更丰富的算子, 同时提升了数据的执行效率.
 
-SparkContext 可以用来创建 RDD 和广播变量, 并且还可以执行与集群相关的一些操作. 可以通过使用 SparkContext 对象来调用各种方法, 以及配置和管理 Spark 应用程序.
+- DataSet 是数据的分布式集合 , 它具有RDD强类型的优点 和Spark SQL优化后执行的优点. DataSet可以由jvm对象构建, 然后使用map,filter, flatmap等操作函数操作.
 
-<p>
-
-可能的一个错误: 文件 `/tmp/spark-events` 不存在.
-- 这个错误通常是由于 SparkContext 在启动时无法找到该文件而引起的.`/tmp/spark-events` 文件夹是 Spark 在运行过程中生成的事件日志文件的存储位置. SparkContext 在启动时会尝试去该文件夹存放日志文件, 以便后续的监控和调试. 如果该文件夹不存在, SparkContext 将无法写入日志文件, 从而导致该错误的出现.
-
-- 解决方法: 要解决这个错误, `mkdir /tmp/spark-events`  (直接在云服务器本地创建就行)
-
-#### **SparkSession**
-
-- SparkSession是Spark 2.0引入的新概念,它是一个入口点,用于创建DataFrame、Dataset和SQLContext等对象.
+- 关于Spark SQL可以看这篇文章: [Spark SQL概述及特点详解](https://blog.csdn.net/weixin_45366499/article/details/108816335)
 
 
 
 
-### Reference
+## Other Spark Topics
+
+
+
+
+
+## Reference
 
 - [大数据面试题：Spark和MapReduce之间的区别？各自优缺点？](https://blog.csdn.net/qq_41544550/article/details/133658290)
 - [知乎用户4omIIF对于”MapReduce和Spark的区别是什么“的回答](https://www.zhihu.com/question/53354580)
 - [2024-02-21（Spark）](https://blog.csdn.net/weixin_44847812/article/details/136206678#:~:text=4040%EF%BC%9A%E6%98%AF%E4%B8%80%E4%B8%AA%E8%BF%90%E8%A1%8C%E7%9A%84Application%E5%9C%A8%E8%BF%90%E8%A1%8C%E7%9A%84%E8%BF%87%E7%A8%8B%E4%B8%AD%E4%B8%B4%E6%97%B6%E7%BB%91%E5%AE%9A%E7%9A%84%E7%AB%AF%E5%8F%A3%EF%BC%8C%E7%94%A8%E4%BB%A5%E6%9F%A5%E7%9C%8B%E5%BD%93%E5%89%8D%E4%BB%BB%E5%8A%A1%E7%9A%84%E7%8A%B6%E6%80%81%E3%80%82%204040%E8%A2%AB%E5%8D%A0%E7%94%A8%E4%BC%9A%E9%A1%BA%E5%BB%B6%E5%88%B04041%EF%BC%8C4042%E7%AD%89%E3%80%82,4040%E6%98%AF%E4%B8%80%E4%B8%AA%E4%B8%B4%E6%97%B6%E7%AB%AF%E5%8F%A3%EF%BC%8C%E5%BD%93%E5%89%8D%E7%A8%8B%E5%BA%8F%E8%BF%90%E8%A1%8C%E5%AE%8C%E6%88%90%E5%90%8E%EF%BC%8C4040%E5%B0%B1%E4%BC%9A%E8%A2%AB%E6%B3%A8%E9%94%80%E3%80%82%204040%E5%92%8CDriver%E7%9B%B8%E5%85%B3%E8%81%94%EF%BC%8C%E4%B8%80%E4%B8%AADriver%E5%90%AF%E5%8A%A8%E8%B5%B7%E6%9D%A5%EF%BC%8C%E4%B8%80%E4%B8%AA4040%E7%AB%AF%E5%8F%A3%E5%B0%B1%E8%A2%AB%E7%BB%91%E5%AE%9A%E8%B5%B7%E6%9D%A5%EF%BC%8C%E5%B9%B6%E5%8F%AF%E4%BB%A5%E6%9F%A5%E7%9C%8B%E8%AF%A5%E7%A8%8B%E5%BA%8F%E7%9A%84%E8%BF%90%E8%A1%8C%E7%8A%B6%E6%80%81%E3%80%82)
+- [大数据开发-Spark-一文理解Spark中的Stage,Executor,Driver...](https://www.cnblogs.com/hulichao/p/14199688.html)
+- [Spark学习（二）：RDD详解](https://www.cnblogs.com/pinoky/p/18435294)
+- [RDD概念、特点、属性、常见操作、缓存级别](https://blog.csdn.net/qq_14815605/article/details/144272549?utm_medium=distribute.pc_relevant.none-task-blog-2~default~baidujs_baidulandingword~default-4-144272549-blog-139066491.235^v43^pc_blog_bottom_relevance_base4&spm=1001.2101.3001.4242.3&utm_relevant_index=6)

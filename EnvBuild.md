@@ -937,6 +937,24 @@ result_rdd.saveAsTextFile("hdfs://node1:9820/spark/wordcount/output")
 ```
 
 
+### 10. PySpark本地环境( Windows)搭建
+
+- 1. 安装Anaconda
+
+<p>
+
+- 2. 进入虚拟环境, 并`pip install pyspark==3.1.2` , **版本不需要太新**, 完成检查`conda list`, 看有没有**py4j & pyspark**这两个包
+
+<p>
+
+- 3. pycharm中创建项目, 使用虚拟环境.  项目下新建**文件夹:** `main , resource , data , test`  
+   - 参考[pycharm 中package, directory, sources root, resources root的区别](https://blog.csdn.net/weixin_52120741/article/details/133070942)
+
+
+
+
+
+
 
 
 

@@ -18,12 +18,18 @@ if __name__== '__main__':
 
     # 获取conf对象
     # setMaster 按照什么方式运行, local / node1:7077
-    # * 代表使用所有cpu, setAppName 设置任务的名字
-    conf = SparkConf().setMaster("local[*]").setAppName("wordcount")
+    # * 代表使用所有cpu, 2代表使用2核cpu,  setAppName 设置任务的名字
+    conf = SparkConf().setMaster("local[4]").setAppName("wordcount")
     # 获取 sc对象
     sc = SparkContext(conf=conf)
 
     print(sc)
+
+    fileRdd = sc.textFile("../data/wordcount/data.txt")
+
+    rsRdd = fileRdd.filter(lambda x: len(x) > 0).flatMap(lambda line : line.strip().split(" ")).map(lambda word: (word, 1)).reduceByKey(lambda x, y: x + y)
+
+    rsRdd.saveAsTextFile("../data/wordcount/output1")
 
 
     sc.stop()
