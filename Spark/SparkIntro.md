@@ -98,7 +98,7 @@
 #### 2.2.1. Cluster Manager
 
 **集群管理器**, 主要用来对应用程序申请的资源进行管理. 根据其部署模式的不同, 可以分为`local`, `standalone`, `yarn`等模式.
- - 在`standalone`模式下, 集群管理器在**Master进程**中.
+ - 在`standalone`模式下, 集群管理器在**Master进程/master节点**中.
  - 在 `YARN` 模式下，集群管理器是由 `YARN ResourceManager` 负责.
 
 #### 2.2.2. Worker
@@ -125,6 +125,7 @@ worker是spark的工作节点, 主要工作职责有下面四点:
 #### 2.2.4. Driver
 
 - 驱动器节点, 它是一个运行Application中**main函数**并创建**SparkContext**的**进程**. 
+- driver由资源管理器启动, 它负责**整个Application**的**生命周期管理**.
 
 <p>
 
@@ -178,9 +179,19 @@ application是Spark API 编程的应用程序, 它包括实现Driver功能的代
 
 - **每个分区的都有计算函数(function for computing each split)**: 在RDD中有一系列函数, 用于"处理计算"每个分区中的数据,这里把"函数"叫算子. 
 
+<p>
 
 
+```python
 
+# 如果没有指定, 默认数为 spark.default.parallelism, 即程序所分配到的CPU Core的数目
+list_rdd = sc.parallelize([1, 2, 3, 4, 5], numSlices=2) # 指定两个分区
+
+# 通过外部读取textFile
+#如果没有指定, 则分区数为  min {2, spark.default.parallelism}
+file_rdd = sc.textFile("file.txt", minPartitions=6) # 指定6个分区
+
+```
 
 #### 2.3.3. RDD容错性
 - RDD 包含血统信息, 记录了该 RDD 如何通过一系列转换操作从原始数据中构建出来.
@@ -265,7 +276,7 @@ rdd.count()  # 两次调用count, 不会重复计算, 因为rdd已经缓存了
 
 <p>
 
-- **Stage**: 一个Job会被划分为多个Stage. Stage之间是串行的, Stage的触发是由一些shuffle,reduceBy,save动作产生的.
+- **Stage**: 一个Job会被划分为多个Stage. Stage之间是**串行的**, Stage的触发是由一些**shuffle**, **ReduceByKey**的动作产生的.
    
    - 划分Stage的一个依据是RDD间的宽窄依赖. 在对Job中的所有操作划分Stage时,一般会按照倒序进行,即从Action开始,遇到窄依赖操作,则划分到同一个执行阶段,遇到宽依赖操作,则划分一个新的执行阶段,且新的阶段为之前阶段的parent,然后依次类推递归执行
 
@@ -274,7 +285,7 @@ rdd.count()  # 两次调用count, 不会重复计算, 因为rdd已经缓存了
 
 <p>
 
-- **Task**: 一个Stage由多个Task组成, Task是Spark程序中执行的基本单位, Task之间是并行的. 比如`sc.textFile("/xxxx").map().filter()`, 其中`map`和`filter`就分别是一个`task`. 每个task的输出就是下一个task的输出。
+- **Task**: 一个Stage由多个Task组成, Task是Spark程序中执行的基本单位, Task之间是并行的. 比如`sc.textFile("/xxxx").map().filter()`, 其中`map`和`filter`就分别是一个`task`. 每个task的输出就是下一个task的输出.
 
 <p>
 
@@ -365,6 +376,11 @@ SparkRpc 基于**netty**实现, 分为异步和同步两种方式.
    /export/server/spark/bin/pyspark --master local[2]
 
    ```
+<p>
+
+- local[2]表示使用2个**cpu**, **local[*]表示使用当前机器上所有可用的CPU核数**.
+
+- 结果文件数与分区数有关, 而分区数与核数有关. 
 
 
 - 测试：

@@ -1,0 +1,54 @@
+"""
+
+在集群服务器上使用
+- HDFS上的数据
+- 集群的资源
+
+"""
+import os
+import time
+
+from pyspark import SparkConf, SparkContext
+
+
+if __name__== '__main__':
+
+
+    os.environ['JAVA_HOME'] = "/export/server/jdk-1.8.0"
+
+    # 配置hadoop路径
+    os.environ['HADOOP_HOME'] = "/export/server/hadoop"
+    # 配置python解释器
+    os.environ['PYSPARK_PYTHON'] = "/export/server/miniconda/bin/python3"
+    os.environ['PYSPARK_DRIVER_PYTHON'] = "/export/server/miniconda/bin/python3"
+
+
+    #  想要一个 spark context 对象, 简称 sc
+    # 获取conf对象
+    # setMaster 按照什么方式运行, local / node1:7077
+    # setAppName 设置任务的名字
+    conf = SparkConf().setMaster("spark://124.71.7.7:7077").setAppName("wordcount")
+
+    # 获取 sc对象
+    sc = SparkContext(conf = conf)
+
+    print(sc)
+
+    fileRdd = sc.textFile("hdfs://124.71.7.7/test.txt")
+
+    # strip() 方法用于移除字符串头尾指定的字符（默认为空格或换行符）或字符序列
+    # split() 方法用于把一个字符串分割成一个列表
+    rsRdd = fileRdd.filter(lambda x: len(x) > 0) \
+        .flatMap(lambda line: line.strip().split()) \
+        .map(lambda word: (word, 1)) \
+        .reduceByKey(lambda x, y: x + y)
+
+    time.sleep(100)
+    print(rsRdd.collect())
+    time.sleep(100)
+
+    # 创建output文件夹
+    # saveAsTextFile方法在输出目录已存在时会抛出异常
+    rsRdd.saveAsTextFile("hdfs://124.71.7.7:9820/result1")
+
+    sc.stop()

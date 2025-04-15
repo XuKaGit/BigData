@@ -219,7 +219,7 @@ export HADOOP_LOG_DIR=$HADOOP_HOME/logs
 **对于Node1,2,3 执行以下操作:**
 
 
-- 1. **新建数据目录**: 在**node1**创建文件夹`mkdir -p /data/nn`, 在**node1,2,3**创建文件夹`mkdir -p /data/dn`
+- 1. **新建数据目录**: 在**node1**创建文件夹`mkdir -p /data/nn`, 在**node1,2,3**创建文件夹`mkdir -p /data/dn`, `mkdir /export/server/hadoop/tmp`
 - 2. **配置环境变量**:
 ```
 vim /etc/profile
@@ -443,6 +443,7 @@ export HADOOP_LOG_DIR=$HADOOP_HOME/logs
     <value>org.apache.hadoop.yarn.server.resourcemanager.scheduler.fair.FairScheduler</value>
     <discription>选择公平调度器</discription>
   </property>
+
 
 </configuration>
 ```
@@ -690,7 +691,7 @@ source /etc/profile
 ```
 
 
-- 创建软连接
+- 创建软连接(optional)
 
 ```shell
 ln -s /export/server/anaconda3/bin/python3 /usr/bin/python3
@@ -953,9 +954,176 @@ result_rdd.saveAsTextFile("hdfs://node1:9820/spark/wordcount/output")
 
 
 
+### 11. Spark-YARN
+
+- 每个服务器进行以下操作
+
+#### 11.1 解压/重命名/创建软连接/配置环境变量
+
+- **解压**`tar -zxvf spark-3.1.2-bin-hadoop3.2.tgz -C /export/server`
+
+<p>
+
+- **重命名并创建软连接**
+
+```shell
+cd /export/server
+
+# 之前的spark-local可以不用删除
+mv spark-3.1.2-bin-hadoop3.2/ spark-yarn
+# 删除软连接
+rm -rf spark
+# 创建软连接
+ln -s spark-yarn spark
+```
+
+- **配置环境变量** (如果部署saprk-local是改过了, 则不需要再改了)
+
+```
+vim /etc/profile
+export SPARK_HOME=/export/server/spark
+export PATH=$PATH:$SPARK_HOME/bin:$SPARK_HOME/sbin
+source /etc/profile
+
+```
+
+#### 11.2 修改配置文件(spark-env.sh)
+
+
+```shell
+cd /export/server/spark/conf
+# 重命名
+mv spark-env.sh.template spark-env.sh
+
+vim spark-env.sh
+
+## 22行
+export JAVA_HOME=/export/server/jdk1.8.0
+export HADOOP_CONF_DIR=/export/server/hadoop/etc/hadoop
+export YARN_CONF_DIR=/export/server/hadoop/etc/hadoop
+export SPARK_DAEMON_MEMORY=1g   # Spark进程本身可用的内存大小
+```
+
+#### 11.3 添加jobHistoryServer (Optional)
+
+
+- 11.3.1. **在hadoop文件系统种创建存放日志的目录**
+  
+```shell
+start-dfs.sh
+hdfs dfs -mkdir -p /spark/eventLogs/
+```
+
+- **11.3.2. 修改spark-defaults.conf.template文件**
+```shell
+cd /export/server/spark/conf
+mv spark-defaults.conf.template spark-defaults.conf
+vim spark-defaults.conf
+# 在末尾添加
+spark.eventLog.enabled     true
+spark.eventLog.dir         hdfs://node1:9820/spark/eventLogs
+spark.eventLog.compress    true 
+spark.yarn.historyServer.address    node1:18080
+spark.yarn.jars    hdfs://node1:9820/spark/jars/*
+```
+
+- **11.3.3. 修改spark-env.sh文件**
+
+```shell
+vim spark-env.sh
+# 在末尾添加
+
+export SPARK_HISTORY_OPTS="
+-Dspark.history.ui.port=18080 
+-Dspark.history.fs.logDirectory=hdfs://node1:9820/spark/eventLogs 
+-Dspark.history.retained-Applications=3
+-Dspark.history.fs.cleaner.enabled=true"
+```
 
 
 
+
+#### 11.4. 修改workers文件
+
+
+```shell
+mv workers.template workers
+vim workers
+# 删掉localhoost, 添加以下内容
+node1
+node2 
+node3
+```
+
+#### 11.5. 修改log4j.properties文件
+
+```shell
+mv log4j.properties.template log4j.properties
+vim log4j.properties
+
+# log4j的5种级别: DEBUG < INFO < WARN < ERROR < FATAL < OFF
+# 19行, 修改日志级别为WARN
+log4j.rootCategory=WARN, console
+
+```
+
+
+#### 11.7. 创建jar包
+
+```shell
+hdfs dfs -mkdir -p /spark/jars/
+hdfs dfs -put /export/server/spark/jars/* /spark/jars/
+```
+
+
+#### 11.8. 创建/tmp/spark-events  (optional, 报错再加)
+
+服务器本地创建文件夹:`mkdir /tmp/spark-events`
+
+
+#### 11.9 YARN的配置
+
+```
+cd /export/server/hadoop/etc/hadoop
+vim yarn-site.xml
+
+# 添加
+
+  <property>
+    <name>yarn.log-aggregation.retain-seconds</name>
+    <value>604800</value>
+  </property>
+
+  <property>
+    <name>yarn.nodemanager.pmem-check-enabled</name>
+    <value>false</value>
+    <discription>关闭yarn内存检查</discription>
+  </property>
+
+  <property>
+    <name>yarn.nodemanager.vmem-check-enabled</name>
+    <value>false</value>
+    <discription>关闭yarn内存检查</discription>
+  </property>
+
+```
+
+#### 11.10. 启动集群
+
+```shell
+# 启动hadoop集群
+start-dfs.sh
+start-yarn.sh
+# 启动jobHistoryServer
+mapred --daemon start historyserver
+/export/server/spark/sbin/start-history-server.sh
+```
+
+
+#### 11.11. 提交任务
+
+```shell
+# 提交任务 pi.py
 
 
 

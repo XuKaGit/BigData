@@ -6,6 +6,8 @@
 
 """
 import os
+import time
+
 from pyspark import SparkConf, SparkContext
 
 if __name__== '__main__':
@@ -42,8 +44,9 @@ if __name__== '__main__':
         .map(lambda word: (word, 1)) \
         .reduceByKey(lambda x, y: x + y)
 
-
+    time.sleep(100)
     print(rsRdd.collect())
+    time.sleep(100)
 
     # 创建output文件夹
     # saveAsTextFile方法在输出目录已存在时会抛出异常
