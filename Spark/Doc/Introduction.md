@@ -76,7 +76,7 @@
 
 ### 2.1. Spark程序运行的层次结构
 
-- 在Spark程序中, 一个**任务**( 或者说**Application**, 比如对一个文件进行`wordcount`)由多个**Job**组成, 一个**Job**由多个**Stage**组成, 一个**Stage**由多个**Task (线程)**组成.
+- 在Spark程序中, 一个**任务**( 或者说**Application**, 比如对一个文件进行`wordcount`)由多个**Job**组成, 一个**Job**由多个**Stage**组成, 一个**Stage**由多个 **Task (线程)** 组成.
 
 <div style="text-align: center;">
     <img src="Figures\stream.png" style="width: 80%; max-width: 600px; height: auto;">
@@ -193,12 +193,19 @@ file_rdd = sc.textFile("file.txt", minPartitions=6) # 指定6个分区
 
 ```
 
-#### 2.3.3. RDD容错性
+#### 2.3.3. 依赖与RDD容错性
 - RDD 包含血统信息, 记录了该 RDD 如何通过一系列转换操作从原始数据中构建出来.
 
 - 每个 RDD 都有一个或多个**依赖关系**, 表示它是如何由其它 RDD 转换得到的. RDD 之间的依赖关系有两种: 
-   - **窄依赖**(Narrow Dependency): 每个父 RDD 的分区对应一个子 RDD 的分区. 例如，`map`、`filter`、`union` 等操作. 
+   - **窄依赖**(Narrow Dependency): 父 RDD 的一个分区(Partition)的数据, 最多只会被子 RDD 的一个分区所使用. 例如，`map`、`filter`、`union` 等操作. 
    - **宽依赖**(Wide Dependency): 父 RDD 的一个分区可能会被多个子 RDD 的分区使用. 例如, `groupBy()`、`reduceByKey()` 等操作.
+
+- 宽 VS 窄  : 窄依赖操作的性能远远**高于**宽依赖, 因为**无需 Shuffle**: 计算可以在各个节点上独立进行, 不需要在节点间大规模地交换数据; 没有网络和磁盘 I/O 的瓶颈; 且支持**流水线(Pipelining)**:Spark 会将一连串的窄依赖操作`(如 map -> filter -> map)`打包成一个`任务(Task)`在一个 `Stage` 里执行, 极大地提高了效率, 这就像工人可以连续完成好几个工序, 而不用每次都把零件放回箱子.
+- **宽依赖**是 Spark 划分 **Stage** 的唯一依据. 当 Spark 的 DAGScheduler 遇到一个宽依赖时, 它就会在这里切一刀, 前面的窄依赖操作划分为一个 Stage, 后面的操作划分为另一个 Stage.
+- 注意当两个 RDD 的 `Partitioner` 不同时, `join`操作时**宽依赖** 
+- **容错性**:
+   - 窄依赖的容错: 如果一个任务失败, 导致子 RDD 的某个分区丢失, Spark 只需要重新计算父 RDD 对应的那个分区即可, 恢复成本很低.
+   - 宽依赖的容错: 如果一个分区丢失, 由于它的数据可能来自父 RDD 的所有分区, 因此最坏情况下需要重新计算父 RDD 的所有分区, 恢复成本非常高
 
 
 <div style="text-align: center;">
@@ -276,7 +283,7 @@ rdd.count()  # 两次调用count, 不会重复计算, 因为rdd已经缓存了
 
 <p>
 
-- **Stage**: 一个Job会被划分为多个Stage. Stage之间是**串行的**, Stage的触发是由一些**shuffle**, **ReduceByKey**的动作产生的.
+- **Stage**: 一个Job会被划分为多个Stage. Stage之间是**串行的**, Stage的触发是由一些**shuffle**, **ReduceByKey**的动作产生的 (**宽依赖**).
    
    - 划分Stage的一个依据是RDD间的宽窄依赖. 在对Job中的所有操作划分Stage时,一般会按照倒序进行,即从Action开始,遇到窄依赖操作,则划分到同一个执行阶段,遇到宽依赖操作,则划分一个新的执行阶段,且新的阶段为之前阶段的parent,然后依次类推递归执行
 
@@ -317,6 +324,7 @@ rdd.count()  # 两次调用count, 不会重复计算, 因为rdd已经缓存了
 
 
 #### 3.1.1 SparkContext
+- SparkContext运行在**spark driver**中
 
 - SparkContext是Spark应用程序的**入口**,它负责与Spark集群进行通信,并创建RDD、Accumulator和Broadcast等对象.
 
@@ -453,6 +461,59 @@ SparkRpc 基于**netty**实现, 分为异步和同步两种方式.
 
 
 ## 5. Spark 算子
+
+### 5.1. RDD Transformation算子
+
+| 方法                                  | 含义                                                                                                                                               |
+|-------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
+| `map(func)`                        | 返回一个新的分布式数据集，该数据集通过将源的每个元素传递给函数 `func` 来形成。                                                               |
+| `filter(func)`                     | 返回一个新的数据集，该数据集通过选择 `func` 返回 `true` 的源元素来形成。                                                                     |
+| `flatMap(func)`                    | 类似于 `map`，但每个输入项可以映射到 0 个或多个输出项（因此 `func` 应该返回一个 Seq 而不是单个项）。                                          |
+| `mapPartitions(func)`              | 类似于 `map`，但在 RDD 的每个分区（块）上单独运行，因此当在类型为 T 的 RDD 上运行时，`func` 必须是类型为 `Iterator<T> => Iterator<U>`。    |
+| `mapPartitionsWithIndex(func)`     | 类似于 `mapPartitions`，但还为 `func` 提供一个整数值，表示分区的索引，因此当在类型为 T 的 RDD 上运行时，`func` 必须是类型为 `(Int, Iterator<T>) => Iterator<U>`。 |
+| `sample(withReplacement, fraction, seed)` | 使用给定的随机数生成器种子，对数据进行有放回或无放回抽样，抽样比例为 `fraction`。                                                      |
+| `union(otherDataset)`              | 返回一个新的数据集，该数据集包含源数据集和参数中的元素的并集。                                                                               |
+| `intersection(otherDataset)`       | 返回一个新的 RDD，该 RDD 包含源数据集和参数中元素的交集。                                                                                   |
+| `distinct([numPartitions])`        | 返回一个新的数据集，该数据集包含源数据集中的不同元素。                                                                                       |
+| `groupByKey([numPartitions])`      | 当在 `(K, V)` 对的数据集上调用时，返回 `(K, Iterable<V>)` 对的数据集。注意：如果您正在进行分组以对每个键执行聚合（例如求和或平均值），使用 `reduceByKey` 或 `aggregateByKey` 将产生更好的性能。 |
+| `reduceByKey(func, [numPartitions])` | 当在 `(K, V)` 对的数据集上调用时，返回 `(K, V)` 对的数据集，其中每个键的值使用给定的 reduce 函数 `func` 进行聚合，该函数必须是类型为 `(V,V) => V`。与 `groupByKey` 一样，reduce 任务的数量可以通过可选的第二个参数进行配置。 |
+| `aggregateByKey(zeroValue)(seqOp, combOp, [numPartitions])` | 当在 `(K, V)` 对的数据集上调用时，返回 `(K, U)` 对的数据集，其中每个键的值使用给定的组合函数和中性的“零”值进行聚合。允许聚合值类型与输入值类型不同，同时避免不必要的分配。与 `groupByKey` 一样，reduce 任务的数量可以通过可选的第二个参数进行配置。 |
+| `sortByKey([ascending], [numPartitions])` | 当在 `(K, V)` 对的数据集上调用时，其中 `K` 实现 `Ordered`，返回 `(K, V)` 对的数据集，这些对按键的升序或降序排序，如布尔值 `ascending` 参数中指定的那样。 |
+| `join(otherDataset, [numPartitions])` | 当在类型为 `(K, V)` 和 `(K, W)` 的数据集上调用时，返回 `(K, (V, W))` 对的数据集，其中包含每个键的所有元素对。外部连接通过 `leftOuterJoin`、`rightOuterJoin` 和 `fullOuterJoin` 支持。 |
+| `cogroup(otherDataset, [numPartitions])` | 当在类型为 `(K, V)` 和 `(K, W)` 的数据集上调用时，返回 `(K, (Iterable<V>, Iterable<W>))` 元组的数据集。此操作也称为 `groupWith`。 |
+| `cartesian(otherDataset)`          | 当在类型为 `T` 和 `U` 的数据集上调用时，返回 `(T, U)` 对的数据集（所有元素对）。                                                       |
+| `pipe(command, [envVars])`        | 将 RDD 的每个分区通过 shell 命令（例如 Perl 或 bash 脚本）进行管道传输。RDD 元素被写入进程的 stdin，输出到其 stdout 的行作为字符串的 RDD 返回。 |
+| `coalesce(numPartitions)`          | 将 RDD 中的分区数减少到 `numPartitions`。在过滤掉大型数据集后，这对于更有效地运行操作很有用。                                              |
+| `repartition(numPartitions)`       | 随机重新排列 RDD 中的数据，以创建更多或更少的分区，并在它们之间进行平衡。这始终在网络上对所有数据进行混洗。                               |
+| `repartitionAndSortWithinPartitions(partitioner)` | 根据给定的分区器对 RDD 进行重新分区，并在每个结果分区内按其键对记录进行排序。这比调用 `repartition` 然后在每个分区内进行排序更有效，因为它可以将排序推送到混洗机制中。 |
+
+### 5.2. RDD Action算子
+
+| 方法                                      | 含义                                                                                                                                                 |
+|------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
+| `reduce(func)`                          | 使用函数 `func`（接受两个参数并返回一个参数）聚合数据集中的元素。该函数应该是可交换的和可结合的，以便它可以在并行中正确计算。                      |
+| `collect()`                             | 将数据集中的所有元素作为数组返回到驱动程序。这通常在过滤或其他操作之后有用，这些操作返回数据的小子集。                                              |
+| `count()`                               | 返回数据集中元素的数量。                                                                                                                           |
+| `first()`                               | 返回数据集的第一个元素（类似于 `take(1)`）。                                                                                                      |
+| `take(n)`                               | 返回一个数组，其中包含数据集的前 `n` 个元素。                                                                                                      |
+| `takeSample(withReplacement, num, [seed])` | 返回一个数组，其中包含数据集的 `num` 个元素的随机样本，可以有放回或无放回，可以选择预先指定随机数生成器种子。                                   |
+| `takeOrdered(n, [ordering])`           | 使用其自然顺序或自定义比较器返回 RDD 的前 `n` 个元素。                                                                                            |
+| `saveAsTextFile(path)`                 | 将数据集的元素写入本地文件系统、HDFS 或任何其他 Hadoop 支持的文件系统中的给定目录中的文本文件（或一组文本文件）。Spark 将对每个元素调用 `toString` 以将其转换为文件中的文本行。 |
+| `saveAsSequenceFile(path)`              | (Java 和 Scala) 将数据集的元素写入本地文件系统、HDFS 或任何其他 Hadoop 支持的文件系统中的给定路径中的 Hadoop SequenceFile。                     |
+| `saveAsObjectFile(path)`                | (Java 和 Scala) 使用 Java 序列化以简单格式写入数据集的元素，然后可以使用 `SparkContext.objectFile()` 加载。                                   |
+| `countByKey()`                          | 仅适用于类型为 `(K, V)` 的 RDD。返回一个 `(K, Int)` 对的哈希映射，其中包含每个键的计数。                                                       |
+| `foreach(func)`                         | 对数据集中的每个元素执行函数 `func`。这通常用于副作用，例如更新累加器或与外部存储系统交互。 |
+
+
+
+### 5.3. RDD Shuffle Operations
+
+**Def**: The `shuffle` is Spark’s mechanism for re-distributing data so that it’s grouped differently **across partitions**. This typically involves copying data across executors and machines, making the shuffle a **complex and costly operation**.
+
+<p>
+
+- Shuffle还会在磁盘上生成大量中间文件。从 Spark 1.3 开始，这些文件将保留，直到相应的 RDD 不再使用并被垃圾回收。这样做是为了避免在重新计算血统时重新创建混洗文件。垃圾回收可能只在很长一段时间后发生，如果应用程序保留了对这些 RDD 的引用，或者如果 GC 不经常启动。这意味着长时间运行的 Spark 作业可能会消耗大量的磁盘空间。临时存储目录由配置 Spark 上下文时的 spark.local.dir 配置参数指。
+
 
 ## 6. Spark SQL
 

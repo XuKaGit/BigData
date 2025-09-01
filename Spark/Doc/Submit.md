@@ -1,4 +1,8 @@
-## spark-submit 脚本
+# Spark提交与运行模式
+
+
+
+## 1. spark-submit 脚本
 
 
 - **作用**: 将写好的代码提交到spark, 由spark进行调度执行.
@@ -6,7 +10,7 @@
 <p>
 
 
-### 1. spark-submit 语法
+### 1.1 spark-submit 语法
 
 ```shell
 # 提交任务的命令
@@ -39,7 +43,7 @@ spark-submit --master yarn programe.py outputpath
 
 ```
 
-### 2. Options
+### 1.2. Options
 
 
 
@@ -85,12 +89,12 @@ spark-submit --master yarn programe.py outputpath
 - **queue**: ``--queue``, 指定提交任务到哪个队列
 
 
-### 3. 优先级
+### 1. 3. 优先级
 
 代码中的配置(**set**) > spark-submit 命令中的配置 > spark-defaults.conf 中的配置
 
 
-### 4.
+### 1.4. 运行模式
 
 - **deploy mode options**: ``--deploy-mode``用于指定**driver**在哪里启动, 默认是**client**模式, 也可以是**cluster**模式. 如果是**client**模式, 则driver在你提交任务的机器上启动. 如果是**cluster**模式, 则driver会在集群中随机一台机器启动.
    - **pyspark**只支持**client**模式
@@ -99,3 +103,60 @@ spark-submit --master yarn programe.py outputpath
 - 在**YARN**模式下
   - **client**模式: driver和AppMaster是不在一起的, 各玩各的.
   - **cluster**模式: driver和AppMaster合二为一.
+
+
+
+## 2. SparkSession 和 SparkContext 的区别与联系
+
+- 都在driver中运行
+### 2.1. SparkContext
+
+- **Spark 1.x 时代的核心入口**
+    - 是 Spark 功能的主要入口点(Spark 1.x 及早期版本)
+
+    - 负责与集群通信, 管理任务调度、资源分配等底层操作. 
+
+    - 直接创建 RDD
+
+    - 控制 Spark 应用的生命周期 (`sc.start()`, `sc.stop()`)
+
+    - 提供低级 API (如累加器、广播变量)
+
+    ```python
+    from pyspark import SparkContext
+    sc = SparkContext("local", "MyApp")  # 本地模式
+    rdd = sc.parallelize([1, 2, 3])     # 创建 RDD
+    ```
+
+### 2.2. SparkSession
+
+- **Spark 2.x/3.x 时代的核心入口**
+    - 是 Spark 应用程序的主要入口点(Spark 2.x 及后期版本), 整合了 `SparkContext`、`SQLContext`、`HiveContext` 等
+
+    - 提供了 DataFrame 和 Dataset API 的统一入口
+
+    - 简化了 Spark 应用的配置和初始化过程
+
+    - 支持更高级的 SQL 和 DataFrame 操作
+
+    - 提供了更丰富的配置选项和更好的性能优化
+
+    ```
+    from pyspark.sql import SparkSession
+
+    # 初始化 SparkSession
+    spark = SparkSession.builder.appName("RDDAndDataFrame").getOrCreate()
+
+    # 方法 1：通过 SparkContext 创建 RDD
+    sc = spark.sparkContext
+    rdd = sc.parallelize([1, 2, 3])
+    print("RDD 内容:", rdd.collect())
+
+    # 方法 2：从 DataFrame 转换到 RDD
+    df = spark.createDataFrame([(1, "Alice"), (2, "Bob")], ["id", "name"])
+    rdd_from_df = df.rdd
+    print("DataFrame 转 RDD:", rdd_from_df.collect())
+
+    # 关闭 SparkSession
+    spark.stop()
+    ```

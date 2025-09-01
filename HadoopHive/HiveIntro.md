@@ -7,15 +7,15 @@
 <p>
 
 **Hive的应用场景:**
-- Hive构建在Hadoop文件系统之上, Hive不提供实时的查询和基于行级的数据更新操作, 不适合**需要低延迟的应用**, 如**联机事务处理(On-line Transaction Processing, OLTP)相关应用. 
-- Hive适用于**联机分析处理( On-Line Analytical Processing, OLAP)**, 应用场景如: 数据挖掘/非实时分析等.
+- Hive构建在Hadoop文件系统之上, Hive不提供实时的查询和基于行级的数据更新操作, 不适合**需要低延迟的应用**, 如 **联机事务处理(On-line Transaction Processing, OLTP)** 相关应用. 
+- Hive适用于 **联机分析处理( On-Line Analytical Processing, OLAP)**, 应用场景如: 数据挖掘/非实时分析等.
 
 <p>
 
 **Hive需要的基本功能:**
- - 用户只写SQL,
+ - 用户只写SQL
  - Hive自动将SQL转化为MapReduce程序并提交运行
- - 处理位于HDFS上的结构化数据
+ - 处理位于HDFS上的**结构化数据**
 
  <p>
 

@@ -1,6 +1,0 @@
-spark hadoop hive spark spark hadoop hive spark hadoop hive spark hadoop hive
-spark hadoop hive spark hadoop hive spark hadoop hive spark hadoop hive spark
-hadoop hive spark hadoop hive spark hadoop hive spark hadoop hive spark hadoop hive spark hadoop
-hive spark hadoop hive spark hadoop hive spark hadoop hive spark
-hadoop hive spark hadoop hive spark hadoop hive
-spark hadoop hive spark hadoop hive spark had

@@ -22,8 +22,8 @@ if __name__== '__main__':
     # 配置hadoop路径
     os.environ['HADOOP_HOME'] = "D:/hadoop-3.3.4"
     # 配置python解释器
-    os.environ['PYSPARK_PYTHON'] = "D:/Anaconda/envs/DDL/python.exe"
-    os.environ['PYSPARK_DRIVER_PYTHON'] = "D:/Anaconda/envs/DDL/python.exe"
+    os.environ['PYSPARK_PYTHON'] = "D:/Anaconda/envs/dsml/python.exe"
+    os.environ['PYSPARK_DRIVER_PYTHON'] = "D:/Anaconda/envs/dsml/python.exe"
 
 
     #  想要一个 spark context 对象, 简称 sc
