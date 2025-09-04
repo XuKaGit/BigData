@@ -164,6 +164,15 @@ sc.stop()
 ```
 
 
+### 2.6. Filters
+
+### 2.5. Joins
+
+Spark join 基本原理: Spark join的基本实现流程如下图所示, Spark将参与Join的两张表抽象为流式表(`StreamTable`)和查找表(`BuildTable`), 通常系统会默认设置`StreamTable`为大表, `BuildTable`为小表. 流式表的迭代器为`streamItr`, 查找表迭代器为`BuidIter`. Join操作就是遍历`streamIter`中每条记录, 然后从`buildIter`中查找相匹配的记录.
+
+
+
+
 
 ## 3. Actions
 
