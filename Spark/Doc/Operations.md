@@ -176,6 +176,9 @@ Spark join 基本原理: Spark join的基本实现流程如下图所示, Spark�
 
 ## 3. Actions
 
+
+`select, filter, withColumn	count, show, collect, save, toPandas`
+
 ## 4. Spark DataFrames & SQL
 
 ### 4.1. Window Operations
